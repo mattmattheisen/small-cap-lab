@@ -4,6 +4,15 @@
 
 This is a comprehensive trading platform built with Streamlit that combines Hidden Markov Model (HMM) regime detection with Sharpe ratio analysis. The application provides traders and analysts with advanced tools for market regime identification and risk-adjusted performance analysis.
 
+## Recent Changes
+
+**January 24, 2025:**
+- Successfully integrated user's original HMM Trading Signal Generator with existing Sharpe Ratio Calculator
+- Fixed yfinance data handling issues (MultiIndex columns and data shape errors)
+- Updated both components to handle modern yfinance API changes
+- All features now working smoothly with real market data
+- Platform provides seamless tabbed interface for both analysis tools
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
