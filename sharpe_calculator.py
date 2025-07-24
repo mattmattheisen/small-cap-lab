@@ -35,7 +35,13 @@ class SharpeCalculator:
                 if isinstance(stock_data.columns, pd.MultiIndex):
                     stock_data.columns = stock_data.columns.droplevel(1)
                 
-                data[symbol] = stock_data['Adj Close'].squeeze()
+                # Try Adj Close first, fallback to Close if not available
+                if 'Adj Close' in stock_data.columns:
+                    data[symbol] = stock_data['Adj Close'].squeeze()
+                elif 'Close' in stock_data.columns:
+                    data[symbol] = stock_data['Close'].squeeze()
+                else:
+                    raise ValueError(f"No price data found for {symbol}")
             except Exception as e:
                 raise ValueError(f"Error downloading {symbol}: {str(e)}")
         
