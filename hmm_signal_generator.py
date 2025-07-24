@@ -26,9 +26,13 @@ class HMMSignalGenerator:
         if len(data) < 60:
             raise ValueError("Need at least 60 days of data")
         
-        # Extract price and volume as Series
-        close_prices = data['Close']
-        volume = data['Volume']
+        # Handle MultiIndex columns from yfinance
+        if isinstance(data.columns, pd.MultiIndex):
+            data.columns = data.columns.droplevel(1)
+        
+        # Extract price and volume as Series and ensure they're 1D
+        close_prices = data['Close'].squeeze()
+        volume = data['Volume'].squeeze()
         
         # Calculate basic features
         returns = close_prices.pct_change()

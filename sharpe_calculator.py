@@ -30,7 +30,12 @@ class SharpeCalculator:
                 stock_data = yf.download(symbol, start=start_date, end=end_date, progress=False)
                 if stock_data is None or stock_data.empty:
                     raise ValueError(f"No data available for {symbol}")
-                data[symbol] = stock_data['Adj Close']
+                
+                # Handle MultiIndex columns from yfinance
+                if isinstance(stock_data.columns, pd.MultiIndex):
+                    stock_data.columns = stock_data.columns.droplevel(1)
+                
+                data[symbol] = stock_data['Adj Close'].squeeze()
             except Exception as e:
                 raise ValueError(f"Error downloading {symbol}: {str(e)}")
         
