@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 import yfinance as yf
 from hmm_signal_generator import HMMSignalGenerator
 from sharpe_calculator import SharpeCalculator
+from small_cap_screener import SmallCapScreener
 from utils import format_percentage, format_number, validate_date_range
 
 # Page configuration
@@ -32,9 +33,11 @@ def main():
         st.session_state.hmm_generator = HMMSignalGenerator()
     if 'sharpe_calculator' not in st.session_state:
         st.session_state.sharpe_calculator = SharpeCalculator()
+    if 'small_cap_screener' not in st.session_state:
+        st.session_state.small_cap_screener = SmallCapScreener()
     
     # Create tabs
-    tab1, tab2, tab3 = st.tabs(["🔮 HMM Trading Signals", "📊 Sharpe Ratio Analysis", "🔬 Combined Analytics"])
+    tab1, tab2, tab3, tab4 = st.tabs(["🔮 HMM Trading Signals", "📊 Sharpe Ratio Analysis", "🔬 Combined Analytics", "🔍 Small Cap Screener"])
     
     with tab1:
         hmm_trading_signals()
@@ -44,6 +47,9 @@ def main():
     
     with tab3:
         combined_analytics()
+    
+    with tab4:
+        small_cap_screener()
 
 def hmm_trading_signals():
     """HMM Trading Signals Tab"""
@@ -640,6 +646,230 @@ def analyze_regime_performance(hmm_results, sharpe_results):
                 st.metric("Market Share", f"{stats['percentage']:.1f}%")
     
     st.caption("*Regime Sharpe = Average Return / Volatility (simplified calculation)")
+
+def small_cap_screener():
+    """Small Cap Stock Screener Tab"""
+    st.header("🔍 Small Cap Stock Screener")
+    
+    st.info("Advanced fundamental analysis to find high-quality small cap opportunities with consistent growth, strong financials, and reasonable valuations.")
+    
+    screener = st.session_state.small_cap_screener
+    
+    # Sidebar for screening criteria
+    with st.sidebar:
+        st.subheader("🎯 Screening Criteria")
+        
+        # Market cap range
+        st.markdown("**Market Cap Range**")
+        market_cap_min = st.number_input(
+            "Minimum Market Cap ($M):",
+            min_value=50,
+            max_value=5000,
+            value=300,
+            step=50,
+            help="Minimum market capitalization in millions"
+        ) * 1_000_000
+        
+        market_cap_max = st.number_input(
+            "Maximum Market Cap ($B):",
+            min_value=1.0,
+            max_value=10.0,
+            value=2.0,
+            step=0.5,
+            help="Maximum market capitalization in billions"
+        ) * 1_000_000_000
+        
+        # Growth criteria
+        st.markdown("**Growth Requirements**")
+        revenue_growth_min = st.slider(
+            "Minimum Revenue Growth (%):",
+            min_value=5,
+            max_value=30,
+            value=10,
+            help="Minimum annual revenue growth rate"
+        ) / 100
+        
+        eps_growth_min = st.slider(
+            "Minimum EPS Growth (%):",
+            min_value=5,
+            max_value=30,
+            value=10,
+            help="Minimum annual earnings per share growth"
+        ) / 100
+        
+        # Financial health
+        st.markdown("**Financial Health**")
+        debt_equity_max = st.slider(
+            "Maximum Debt/Equity (%):",
+            min_value=10,
+            max_value=100,
+            value=50,
+            help="Maximum debt to equity ratio"
+        ) / 100
+        
+        profit_margin_min = st.slider(
+            "Minimum Profit Margin (%):",
+            min_value=0,
+            max_value=20,
+            value=5,
+            help="Minimum net profit margin"
+        ) / 100
+        
+        # Valuation
+        st.markdown("**Valuation Metrics**")
+        peg_ratio_max = st.slider(
+            "Maximum PEG Ratio:",
+            min_value=0.5,
+            max_value=3.0,
+            value=1.0,
+            step=0.1,
+            help="Maximum price/earnings to growth ratio"
+        )
+        
+        # Liquidity
+        st.markdown("**Liquidity Requirements**")
+        min_volume_usd = st.number_input(
+            "Minimum Daily Volume ($M):",
+            min_value=0.1,
+            max_value=10.0,
+            value=1.0,
+            step=0.1,
+            help="Minimum average daily trading volume in millions"
+        ) * 1_000_000
+    
+    # Create criteria dictionary
+    criteria = {
+        'market_cap_min': market_cap_min,
+        'market_cap_max': market_cap_max,
+        'revenue_growth_min': revenue_growth_min,
+        'eps_growth_min': eps_growth_min,
+        'debt_equity_max': debt_equity_max,
+        'profit_margin_min': profit_margin_min,
+        'peg_ratio_max': peg_ratio_max,
+        'min_volume_usd': min_volume_usd,
+    }
+    
+    # Display current criteria
+    st.subheader("📋 Current Screening Criteria")
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("Market Cap Range", f"${market_cap_min/1e6:.0f}M - ${market_cap_max/1e9:.1f}B")
+        st.metric("Revenue Growth", f"≥{revenue_growth_min*100:.0f}%")
+    
+    with col2:
+        st.metric("EPS Growth", f"≥{eps_growth_min*100:.0f}%")
+        st.metric("Profit Margin", f"≥{profit_margin_min*100:.0f}%")
+    
+    with col3:
+        st.metric("Debt/Equity", f"≤{debt_equity_max*100:.0f}%")
+        st.metric("PEG Ratio", f"≤{peg_ratio_max:.1f}")
+    
+    with col4:
+        st.metric("Daily Volume", f"≥${min_volume_usd/1e6:.1f}M")
+        st.metric("Stocks to Screen", len(screener.small_cap_universe))
+    
+    # Run screening button
+    if st.button("🚀 Run Small Cap Screen", type="primary", key="run_screener"):
+        try:
+            with st.spinner("Screening small cap stocks... This may take a few minutes."):
+                results = screener.screen_stocks(criteria)
+                
+                if results:
+                    st.session_state.screening_results = results
+                    
+                    st.success(f"Found {len(results)} stocks that meet your criteria!")
+                    
+                    # Format and display results
+                    results_df = screener.format_screening_results(results)
+                    
+                    st.subheader("📊 Screening Results")
+                    st.dataframe(results_df, use_container_width=True)
+                    
+                    # Top picks
+                    if len(results) >= 3:
+                        st.subheader("🏆 Top 3 Picks")
+                        
+                        for i, stock in enumerate(results[:3]):
+                            with st.expander(f"#{i+1}: {stock['symbol']} - Score: {stock['screening_score']}/10"):
+                                display_stock_details(stock)
+                    
+                    # Export option
+                    st.subheader("💾 Export Results")
+                    csv = results_df.to_csv(index=False)
+                    st.download_button(
+                        label="Download Results as CSV",
+                        data=csv,
+                        file_name=f"small_cap_screen_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        mime="text/csv"
+                    )
+                    
+                else:
+                    st.warning("No stocks met your screening criteria. Try adjusting the parameters.")
+                    
+        except Exception as e:
+            st.error(f"Error during screening: {str(e)}")
+    
+    # Display previous results if available
+    if 'screening_results' in st.session_state and st.session_state.screening_results:
+        if st.button("🔄 Show Last Results"):
+            results = st.session_state.screening_results
+            results_df = screener.format_screening_results(results)
+            
+            st.subheader("📊 Previous Screening Results")
+            st.dataframe(results_df, use_container_width=True)
+
+def display_stock_details(stock):
+    """Display detailed information for a screened stock"""
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.markdown("**Valuation Metrics**")
+        st.write(f"• Market Cap: ${stock['market_cap']/1e9:.2f}B" if stock['market_cap'] > 0 else "• Market Cap: N/A")
+        st.write(f"• P/E Ratio: {stock['trailing_pe']:.1f}" if stock['trailing_pe'] else "• P/E Ratio: N/A")
+        st.write(f"• PEG Ratio: {stock['peg_ratio']:.2f}" if stock['peg_ratio'] else "• PEG Ratio: N/A")
+        st.write(f"• Price/Book: {stock['price_to_book']:.2f}" if stock['price_to_book'] else "• Price/Book: N/A")
+    
+    with col2:
+        st.markdown("**Growth Metrics**")
+        st.write(f"• Revenue Growth: {stock['revenue_growth']*100:.1f}%" if stock['revenue_growth'] else "• Revenue Growth: N/A")
+        st.write(f"• EPS Growth: {stock['earnings_growth']*100:.1f}%" if stock['earnings_growth'] else "• EPS Growth: N/A")
+        st.write(f"• ROE: {stock['return_on_equity']*100:.1f}%" if stock['return_on_equity'] else "• ROE: N/A")
+        st.write(f"• ROA: {stock['return_on_assets']*100:.1f}%" if stock['return_on_assets'] else "• ROA: N/A")
+    
+    with col3:
+        st.markdown("**Financial Health**")
+        st.write(f"• Profit Margin: {stock['profit_margin']*100:.1f}%" if stock['profit_margin'] else "• Profit Margin: N/A")
+        st.write(f"• Operating Margin: {stock['operating_margin']*100:.1f}%" if stock['operating_margin'] else "• Operating Margin: N/A")
+        st.write(f"• Debt/Equity: {stock['debt_to_equity']:.1f}%" if stock['debt_to_equity'] else "• Debt/Equity: N/A")
+        st.write(f"• Current Ratio: {stock['current_ratio']:.2f}" if stock['current_ratio'] else "• Current Ratio: N/A")
+    
+    # Additional insights
+    st.markdown("**Key Insights**")
+    insights = []
+    
+    if stock['peg_ratio'] and 0 < stock['peg_ratio'] <= 1:
+        insights.append("🎯 Excellent PEG ratio suggests undervalued growth")
+    
+    if stock['revenue_growth'] and stock['revenue_growth'] >= 0.15:
+        insights.append("📈 Strong revenue growth momentum")
+    
+    if stock['debt_to_equity'] and stock['debt_to_equity'] <= 0.3:
+        insights.append("💪 Conservative debt levels")
+    
+    if stock['profit_margin'] and stock['profit_margin'] >= 0.1:
+        insights.append("💰 Strong profitability margins")
+    
+    if stock['free_cash_flow'] and stock['free_cash_flow'] > 0:
+        insights.append("💵 Positive free cash flow generation")
+    
+    if insights:
+        for insight in insights:
+            st.write(insight)
+    else:
+        st.write("🔍 Review detailed metrics for investment considerations")
 
 if __name__ == "__main__":
     main()

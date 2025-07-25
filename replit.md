@@ -10,8 +10,10 @@ This is a comprehensive trading platform built with Streamlit that combines Hidd
 - Successfully integrated user's original HMM Trading Signal Generator with existing Sharpe Ratio Calculator
 - Fixed yfinance data handling issues (MultiIndex columns and data shape errors)
 - Updated both components to handle modern yfinance API changes
+- Added comprehensive Small Cap Stock Screener with advanced fundamental analysis
+- Screener includes revenue/EPS growth filters, debt ratios, PEG ratios, volume requirements
 - All features now working smoothly with real market data
-- Platform provides seamless tabbed interface for both analysis tools
+- Platform provides seamless tabbed interface for all analysis tools
 
 ## User Preferences
 
