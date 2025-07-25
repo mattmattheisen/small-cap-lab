@@ -25,7 +25,7 @@ st.set_page_config(
 
 def main():
     # Header
-    st.title("🚀 Advanced Trading Platform")
+    st.title("Advanced Trading Platform")
     st.markdown("**Hidden Markov Model Regime Detection + Professional Sharpe Ratio Analysis**")
     
     # Initialize session state
@@ -37,7 +37,7 @@ def main():
         st.session_state.small_cap_screener = SmallCapScreener()
     
     # Create tabs
-    tab1, tab2, tab3, tab4 = st.tabs(["🔮 HMM Trading Signals", "📊 Sharpe Ratio Analysis", "🔬 Combined Analytics", "🔍 Small Cap Screener"])
+    tab1, tab2, tab3, tab4 = st.tabs(["HMM Trading Signals", "📊 Sharpe Ratio Analysis", "🔬 Combined Analytics", "🔍 Small Cap Screener"])
     
     with tab1:
         hmm_trading_signals()
@@ -53,7 +53,7 @@ def main():
 
 def hmm_trading_signals():
     """HMM Trading Signals Tab"""
-    st.header("🔮 Markov Chain Trading Signals")
+    st.header("Markov Chain Trading Signals")
     
     st.info("Advanced regime detection using Hidden Markov Models. You control position sizing and risk management based on high-quality market regime signals.")
     
