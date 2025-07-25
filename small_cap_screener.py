@@ -223,8 +223,9 @@ class SmallCapScreener:
         revenue_growth = fundamentals.get('revenue_growth', 0)
         if revenue_growth >= criteria['revenue_growth_min']:
             score += 2
-            if revenue_growth >= criteria['revenue_growth_max']:
-                score += 1  # Bonus point
+            # Bonus point for exceptional growth (>20%)
+            if revenue_growth >= 0.20:
+                score += 1
         
         # EPS growth (2 points)
         earnings_growth = fundamentals.get('earnings_growth', 0)
