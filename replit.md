@@ -6,6 +6,15 @@ This is a comprehensive trading platform built with Streamlit that combines Hidd
 
 ## Recent Changes
 
+**July 25, 2025:**
+- Successfully integrated custom candlestick pattern recognition into HMM Trading Signal Generator
+- Added detection for high-information patterns: Bullish/Bearish Engulfing, Morning/Evening Star, Hammer
+- Created combined signal system that enhances HMM regime detection with pattern confirmation
+- Enhanced UI displays STRONG_BUY/STRONG_SELL when both HMM and patterns align
+- Added pattern analysis dashboard showing current patterns and 30-day history
+- Implemented conflict detection - shows HOLD when HMM and patterns disagree (for safety)
+- Custom pattern detection built without external dependencies for reliability
+
 **January 24, 2025:**
 - Successfully integrated user's original HMM Trading Signal Generator with existing Sharpe Ratio Calculator
 - Fixed yfinance data handling issues (MultiIndex columns and data shape errors)
@@ -40,12 +49,14 @@ The application follows a modular, single-page web application architecture buil
 - **Session Management**: Uses Streamlit session state for component persistence
 
 ### 2. HMM Signal Generator (`hmm_signal_generator.py`)
-- **Purpose**: Market regime detection using Hidden Markov Models
+- **Purpose**: Market regime detection using Hidden Markov Models with candlestick pattern enhancement
 - **Technology**: Gaussian Mixture Models from scikit-learn as HMM approximation
 - **Features**: 
   - 3-state regime classification (Bear, Sideways, Bull)
   - Feature engineering (returns, volatility, volume ratios, momentum, RSI)
   - Signal generation based on regime transitions
+  - **Enhanced**: Candlestick pattern integration for signal confirmation
+  - **Combined Signals**: STRONG_BUY/STRONG_SELL when HMM + patterns align
 
 ### 3. Sharpe Calculator (`sharpe_calculator.py`)
 - **Purpose**: Risk-adjusted performance analysis
@@ -55,7 +66,17 @@ The application follows a modular, single-page web application architecture buil
   - Risk-free rate integration (default: 4.5% 10-year Treasury)
   - Performance metrics calculation
 
-### 4. Utilities (`utils.py`)
+### 4. Pattern Recognition (`pattern_utils.py`)
+- **Purpose**: Custom candlestick pattern detection and signal combination
+- **Technology**: Custom algorithms without external dependencies
+- **Features**:
+  - Bullish/Bearish Engulfing pattern detection
+  - Morning Star and Evening Star reversal patterns
+  - Hammer pattern recognition
+  - Pattern frequency analysis and history tracking
+  - HMM + pattern signal combination logic
+
+### 5. Utilities (`utils.py`)
 - **Purpose**: Common helper functions
 - **Functions**:
   - Data formatting (percentages, numbers)
