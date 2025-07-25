@@ -122,8 +122,8 @@ def hmm_trading_signals():
                 # Analyze regimes
                 regime_stats = hmm.analyze_regimes(features, states, probabilities)
                 
-                # Generate signal
-                signal_info = hmm.generate_signal(current_regime, current_confidence, regime_stats)
+                # Generate signal with candlestick pattern enhancement
+                signal_info = hmm.generate_signal(current_regime, current_confidence, regime_stats, data)
                 
                 # Store results in session state
                 st.session_state.hmm_results = {
@@ -142,21 +142,92 @@ def hmm_trading_signals():
             st.error(f"❌ Error: {str(e)}")
 
 def display_hmm_results(signal_info, regime_stats, data, states, features):
-    """Display HMM analysis results"""
+    """Display HMM analysis results with candlestick patterns"""
     
-    # Current Signal Display
-    signal = signal_info['signal']
-    strength = signal_info['strength']
+    # Check if we have enhanced signal with patterns
+    has_patterns = signal_info.get('combined_signal') is not None
+    
+    if has_patterns:
+        # Display combined signal prominently
+        combined = signal_info['combined_signal']
+        action = combined['action']
+        combined_strength = combined['strength']
+        
+        # Enhanced signal box
+        if 'STRONG_BUY' in action:
+            st.success(f"🟢 **{action}** - Strength: {combined_strength}/10")
+        elif 'STRONG_SELL' in action:
+            st.error(f"🔴 **{action}** - Strength: {combined_strength}/10")
+        elif 'WEAK_BUY' in action:
+            st.info(f"🔵 **{action}** - Strength: {combined_strength}/10")
+        elif 'WEAK_SELL' in action:
+            st.warning(f"🟠 **{action}** - Strength: {combined_strength}/10")
+        else:
+            st.warning(f"🟡 **{action}** - Strength: {combined_strength}/10")
+        
+        # Show reasoning
+        if combined.get('reasoning'):
+            for reason in combined['reasoning']:
+                st.info(f"💡 {reason}")
+    
+    else:
+        # Original HMM-only signal display
+        signal = signal_info['signal']
+        strength = signal_info['strength']
+        
+        if signal == 'BUY':
+            st.success(f"🟢 **{signal}** Signal - Strength: {strength}/10")
+        elif signal == 'SELL':
+            st.error(f"🔴 **{signal}** Signal - Strength: {strength}/10")
+        else:
+            st.warning(f"🟡 **{signal}** Signal - Strength: {strength}/10")
+    
+    # Pattern Information Section
+    if has_patterns:
+        pattern_signal = signal_info.get('pattern_signal', {})
+        pattern_summary = signal_info.get('pattern_summary', {})
+        
+        st.subheader("📊 Candlestick Pattern Analysis")
+        
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            pattern_text = pattern_signal.get('tag', 'None')
+            pattern_dir = pattern_signal.get('dir', 0)
+            if pattern_dir == 1:
+                st.metric("Current Pattern", f"🟢 {pattern_text}")
+            elif pattern_dir == -1:
+                st.metric("Current Pattern", f"🔴 {pattern_text}")
+            else:
+                st.metric("Current Pattern", "No Pattern")
+        
+        with col2:
+            total_patterns = pattern_summary.get('total_patterns', 0)
+            st.metric("Patterns (30d)", total_patterns)
+        
+        with col3:
+            bullish_count = pattern_summary.get('bullish_count', 0)
+            st.metric("Bullish Patterns", bullish_count)
+        
+        with col4:
+            bearish_count = pattern_summary.get('bearish_count', 0)
+            st.metric("Bearish Patterns", bearish_count)
+        
+        # Recent patterns
+        if pattern_summary.get('recent_patterns'):
+            with st.expander("📋 Recent Pattern History (Last 30 Days)"):
+                recent_df = pd.DataFrame(pattern_summary['recent_patterns'])
+                if not recent_df.empty:
+                    recent_df['date'] = pd.to_datetime(recent_df['date']).dt.strftime('%Y-%m-%d')
+                    st.dataframe(recent_df[['date', 'pattern', 'direction']], use_container_width=True)
+    
+    # Component Analysis
     regime = signal_info['regime']
     confidence = signal_info['confidence']
     
-    # Signal box
-    if signal == 'BUY':
-        st.success(f"🟢 **{signal}** Signal - Strength: {strength}/10")
-    elif signal == 'SELL':
-        st.error(f"🔴 **{signal}** Signal - Strength: {strength}/10")
-    else:
-        st.warning(f"🟡 **{signal}** Signal - Strength: {strength}/10")
+    st.subheader("🔬 Signal Components")
+    
+    col1, col2, col3 = st.columns(3)
     
     # Current regime info
     col1, col2, col3 = st.columns(3)
@@ -168,7 +239,10 @@ def display_hmm_results(signal_info, regime_stats, data, states, features):
         st.metric("Confidence", f"{confidence:.1f}%")
     
     with col3:
-        st.metric("Signal Strength", f"{strength}/10")
+        if has_patterns and signal_info.get('combined_signal'):
+            st.metric("Combined Strength", f"{signal_info['combined_signal']['strength']}/10")
+        else:
+            st.metric("Signal Strength", f"{signal_info['strength']}/10")
     
     # Regime Statistics
     st.subheader("📊 Regime Analysis")

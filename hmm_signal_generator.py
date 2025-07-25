@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 from sklearn.mixture import GaussianMixture
 from sklearn.preprocessing import StandardScaler
+from pattern_utils import compute_cdl, latest_signal, get_pattern_summary, combine_with_hmm_signal
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -206,28 +207,60 @@ class HMMSignalGenerator:
         
         return (same_transitions / total_regime_days * 100) if total_regime_days > 0 else 0.0
     
-    def generate_signal(self, current_regime, confidence, regime_stats):
-        """Generate trading signal"""
+    def generate_signal(self, current_regime, confidence, regime_stats, data=None):
+        """Generate trading signal with optional candlestick pattern enhancement"""
         regime_name = self.regime_names[current_regime]
         
+        # Base HMM signal
         if confidence >= 0.7:
             if regime_name == 'Bull':
-                signal = 'BUY'
+                base_signal = 'BUY'
                 strength = min(10, max(6, int(confidence * 12)))
             elif regime_name == 'Bear':
-                signal = 'SELL'
+                base_signal = 'SELL'
                 strength = min(10, max(6, int(confidence * 12)))
             else:
-                signal = 'HOLD'
+                base_signal = 'HOLD'
                 strength = max(3, int(confidence * 8))
         else:
-            signal = 'HOLD'
+            base_signal = 'HOLD'
             strength = max(1, int(confidence * 6))
         
-        return {
-            'signal': signal,
+        result = {
+            'signal': base_signal,
             'strength': strength,
             'regime': regime_name,
             'confidence': confidence * 100,
-            'regime_stats': regime_stats.get(current_regime, {})
+            'regime_stats': regime_stats.get(current_regime, {}),
+            'pattern_signal': None,
+            'combined_signal': None,
+            'pattern_summary': None
         }
+        
+        # Add candlestick pattern analysis if data is provided
+        if data is not None and len(data) > 0:
+            try:
+                # Compute candlestick patterns
+                data_with_patterns = compute_cdl(data)
+                
+                # Get latest pattern signal
+                pattern_signal = latest_signal(data_with_patterns)
+                
+                # Get pattern summary
+                pattern_summary = get_pattern_summary(data_with_patterns, lookback_days=30)
+                
+                # Combine HMM and pattern signals
+                combined_signal = combine_with_hmm_signal(base_signal, confidence, pattern_signal)
+                
+                # Update result with pattern information
+                result.update({
+                    'pattern_signal': pattern_signal,
+                    'combined_signal': combined_signal,
+                    'pattern_summary': pattern_summary
+                })
+                
+            except Exception as e:
+                print(f"Error in pattern analysis: {e}")
+                # Continue with base HMM signal if pattern analysis fails
+        
+        return result
