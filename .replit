@@ -44,3 +44,7 @@ args = "uv add yfinance scikit-learn plotly"
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[[ports]]
+localPort = 41785
+externalPort = 3000

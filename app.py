@@ -28,6 +28,25 @@ def main():
     st.title("Advanced Trading Platform")
     st.markdown("**Hidden Markov Model Regime Detection + Professional Sharpe Ratio Analysis**")
     
+    # Sidebar - User Manual Download
+    with st.sidebar:
+        st.markdown("### 📖 User Manual")
+        
+        try:
+            with open("USER_MANUAL.md", "r") as f:
+                manual_content = f.read()
+            
+            st.download_button(
+                label="📥 Download User Manual",
+                data=manual_content,
+                file_name="Trading_Platform_User_Manual.md",
+                mime="text/markdown",
+                help="Download the complete user manual for this trading platform"
+            )
+            st.markdown("---")
+        except Exception as e:
+            st.error(f"Unable to load manual: {e}")
+    
     # Initialize session state
     if 'hmm_generator' not in st.session_state:
         st.session_state.hmm_generator = HMMSignalGenerator()
