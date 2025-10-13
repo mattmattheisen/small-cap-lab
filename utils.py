@@ -5,6 +5,8 @@ Utility functions for the trading platform
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
+import streamlit as st
+import yfinance as yf
 
 def format_percentage(value, decimals=2):
     """Format a decimal as a percentage"""
@@ -81,3 +83,36 @@ def safe_divide(numerator, denominator, default=0):
     if denominator == 0 or pd.isna(denominator) or np.isinf(denominator):
         return default
     return numerator / denominator
+
+@st.cache_data(ttl=3600)
+def get_stock_data_cached(ticker: str, start_date: str, end_date: str) -> pd.DataFrame:
+    """
+    Fetch stock data with 1-hour cache TTL to prevent stale data
+    
+    Args:
+        ticker: Stock ticker symbol
+        start_date: Start date (YYYY-MM-DD format or datetime)
+        end_date: End date (YYYY-MM-DD format or datetime)
+        
+    Returns:
+        DataFrame with stock price data
+    """
+    data = yf.download(ticker, start=start_date, end=end_date, progress=False)
+    if data is None or data.empty:
+        return pd.DataFrame()
+    return data
+
+def clear_stock_data_cache():
+    """Clear the stock data cache to force fresh data fetch"""
+    get_stock_data_cached.clear()
+    
+def format_currency(value, decimals=2):
+    """Format a value as currency (USD)"""
+    if pd.isna(value) or np.isinf(value):
+        return "N/A"
+    if value >= 1_000_000:
+        return f"${value/1_000_000:.{decimals}f}M"
+    elif value >= 1_000:
+        return f"${value/1_000:.{decimals}f}K"
+    else:
+        return f"${value:.{decimals}f}"

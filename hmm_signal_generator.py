@@ -178,6 +178,11 @@ class HMMSignalGenerator:
             if np.sum(mask) > 0:
                 regime_features = features.iloc[mask]
                 
+                returns = regime_features['returns']
+                positive_days = (returns > 0).sum()
+                total_days = len(returns)
+                win_rate = (positive_days / total_days * 100) if total_days > 0 else 0
+                
                 regime_stats[regime] = {
                     'name': self.regime_names[regime],
                     'icon': self.regime_icons[regime],
@@ -186,7 +191,8 @@ class HMMSignalGenerator:
                     'percentage': float(np.sum(mask) / len(states) * 100),
                     'avg_return': float(regime_features['returns'].mean() * 100),
                     'volatility': float(regime_features['returns'].std() * 100),
-                    'persistence': self.calculate_persistence(states, regime)
+                    'persistence': self.calculate_persistence(states, regime),
+                    'win_rate': float(win_rate)
                 }
         
         return regime_stats
