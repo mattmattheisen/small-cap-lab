@@ -336,6 +336,44 @@ def display_hmm_results(signal_info, regime_stats, data, states, features):
     )
     
     st.plotly_chart(fig, use_container_width=True)
+    
+    # Kelly Criterion Summary Card
+    st.subheader("💰 Kelly Position Sizing Summary")
+    st.info("Quick Kelly calculation based on HMM regime analysis. Visit the Kelly Position Sizing tab for detailed analysis.")
+    
+    try:
+        kelly = st.session_state.kelly_calculator
+        probabilities = st.session_state.hmm_results['probabilities']
+        current_probs = probabilities[-1]
+        
+        quick_kelly = kelly.calculate_from_hmm_results(
+            regime_stats,
+            current_probs,
+            100000.0,
+            0.5,
+            0.05
+        )
+        
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric("Win Probability", f"{quick_kelly['win_probability']*100:.1f}%")
+        
+        with col2:
+            st.metric("Full Kelly", f"{quick_kelly['kelly_fraction']*100:.1f}%")
+        
+        with col3:
+            st.metric("Half Kelly", f"{quick_kelly['kelly_fraction']*50:.1f}%")
+        
+        with col4:
+            risk_emoji = quick_kelly['risk_level']['emoji']
+            risk_level = quick_kelly['risk_level']['level']
+            st.metric("Risk Level", f"{risk_emoji} {risk_level}")
+        
+        st.caption("💡 Based on $100k portfolio with 5% stop loss and Half Kelly (0.5x). Customize in Kelly Position Sizing tab →")
+        
+    except Exception as e:
+        st.warning(f"Kelly summary unavailable: {str(e)}")
 
 def create_kelly_gauge(applied_kelly_pct, full_kelly_pct=None):
     """Create speedometer gauge for Kelly percentage"""
@@ -636,50 +674,64 @@ def display_kelly_results(results):
 
 def combined_analytics():
     """Combined Analytics Tab"""
-    st.header("🔬 Combined HMM & Sharpe Analytics")
+    st.header("🔬 Combined HMM & Kelly Analytics")
     
-    if 'hmm_results' not in st.session_state or 'sharpe_results' not in st.session_state:
-        st.warning("Please run both HMM Trading Signals and Sharpe Ratio Analysis first to see combined analytics.")
+    if 'hmm_results' not in st.session_state:
+        st.warning("Please run HMM Trading Signals first to see combined analytics.")
         return
     
-    st.success("Analyzing combined HMM regime detection with risk-adjusted performance metrics...")
+    st.success("Analyzing combined HMM regime detection with Kelly position sizing...")
     
     # Get stored results
     hmm_results = st.session_state.hmm_results
-    sharpe_results = st.session_state.sharpe_results
     
-    # Combined metrics
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.metric(
-            "Current Signal",
-            hmm_results['signal_info']['signal'],
-            f"Strength: {hmm_results['signal_info']['strength']}/10"
+    # Quick Kelly calculation for display
+    try:
+        kelly = st.session_state.kelly_calculator
+        regime_stats = hmm_results['regime_stats']
+        probabilities = hmm_results['probabilities']
+        current_probs = probabilities[-1]
+        
+        kelly_results = kelly.calculate_from_hmm_results(
+            regime_stats,
+            current_probs,
+            100000.0,
+            0.5,
+            0.05
         )
+        
+        # Combined metrics
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            signal = hmm_results['signal_info'].get('combined_signal', hmm_results['signal_info'])
+            if isinstance(signal, dict) and 'action' in signal:
+                action = signal['action']
+            else:
+                action = hmm_results['signal_info']['signal']
+            st.metric("Current Signal", action, f"Strength: {hmm_results['signal_info']['strength']}/10")
+        
+        with col2:
+            st.metric("Kelly Fraction", f"{kelly_results['kelly_fraction']*100:.1f}%", "Optimal sizing")
+        
+        with col3:
+            st.metric("Win Probability", f"{kelly_results['win_probability']*100:.1f}%", "From HMM regimes")
+        
+        with col4:
+            risk_level = kelly_results['risk_level']
+            st.metric("Risk Level", f"{risk_level['emoji']} {risk_level['level']}")
     
-    with col2:
-        st.metric(
-            "Portfolio Sharpe",
-            format_number(sharpe_results['sharpe_ratio'], 3),
-            "Risk-Adjusted Return"
-        )
-    
-    with col3:
-        st.metric(
-            "Signal Confidence",
-            f"{hmm_results['signal_info']['confidence']:.1f}%",
-            f"Regime: {hmm_results['signal_info']['regime']}"
-        )
+    except Exception as e:
+        st.error(f"Error calculating Kelly metrics: {str(e)}")
     
     # Regime-specific performance analysis
     st.subheader("📊 Regime-Specific Risk Analysis")
     
-    # Calculate regime-specific Sharpe ratios if we have overlapping data
+    # Display regime stats with Kelly implications
     try:
-        analyze_regime_performance(hmm_results, sharpe_results)
+        analyze_regime_performance(hmm_results)
     except Exception as e:
-        st.warning(f"Unable to calculate regime-specific metrics: {str(e)}")
+        st.warning(f"Unable to display regime metrics: {str(e)}")
     
     # Combined visualization
     st.subheader("📈 Integrated Analysis Dashboard")
@@ -716,30 +768,18 @@ def combined_analytics():
                     line_width=0
                 )
     
-    # Add Sharpe portfolio performance if available
-    if 'cumulative_returns' in sharpe_results:
-        fig.add_trace(go.Scatter(
-            x=sharpe_results['cumulative_returns'].index,
-            y=(sharpe_results['cumulative_returns'] - 1) * 100,
-            mode='lines',
-            name='Portfolio Returns (%)',
-            line=dict(color='blue', width=2),
-            yaxis='y2'
-        ))
-    
-    # Update layout for dual y-axis
+    # Update layout
     fig.update_layout(
-        title="Combined HMM Regime Detection & Portfolio Performance",
+        title="HMM Regime Detection Over Time",
         xaxis_title="Date",
-        yaxis=dict(title="Stock Price ($)", side="left"),
-        yaxis2=dict(title="Portfolio Returns (%)", side="right", overlaying="y"),
+        yaxis_title="Stock Price ($)",
         hovermode='x unified',
         height=600
     )
     
     st.plotly_chart(fig, use_container_width=True)
 
-def analyze_regime_performance(hmm_results, sharpe_results):
+def analyze_regime_performance(hmm_results):
     """Analyze performance by regime"""
     
     # Get regime statistics
