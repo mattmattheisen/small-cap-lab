@@ -183,6 +183,13 @@ class HMMSignalGenerator:
                 total_days = len(returns)
                 win_rate = (positive_days / total_days * 100) if total_days > 0 else 0
                 
+                # Calculate conditional averages for Kelly Criterion
+                positive_returns = returns[returns > 0]
+                negative_returns = returns[returns < 0]
+                
+                avg_positive_return = float(positive_returns.mean() * 100) if len(positive_returns) > 0 else 0
+                avg_negative_return = float(abs(negative_returns.mean() * 100)) if len(negative_returns) > 0 else 0
+                
                 regime_stats[regime] = {
                     'name': self.regime_names[regime],
                     'icon': self.regime_icons[regime],
@@ -192,7 +199,9 @@ class HMMSignalGenerator:
                     'avg_return': float(regime_features['returns'].mean() * 100),
                     'volatility': float(regime_features['returns'].std() * 100),
                     'persistence': self.calculate_persistence(states, regime),
-                    'win_rate': float(win_rate)
+                    'win_rate': float(win_rate),
+                    'avg_positive_return': avg_positive_return,
+                    'avg_negative_return': avg_negative_return
                 }
         
         return regime_stats

@@ -67,9 +67,17 @@ class KellyCalculator:
         bull_stats = regime_stats.get(2, {})
         bear_stats = regime_stats.get(0, {})
         
-        avg_win = abs(bull_stats.get('avg_return', 0))
-        avg_loss = abs(bear_stats.get('avg_return', 0))
+        # Use conditional averages: only positive returns from Bull, only negative returns from Bear
+        avg_win = bull_stats.get('avg_positive_return', 0)
+        avg_loss = bear_stats.get('avg_negative_return', 0)
         
+        # Fallback to overall avg_return if conditional averages not available
+        if avg_win == 0:
+            avg_win = abs(bull_stats.get('avg_return', 0))
+        if avg_loss == 0:
+            avg_loss = abs(bear_stats.get('avg_return', 0))
+        
+        # Ensure we don't divide by zero
         if avg_loss == 0:
             avg_loss = 0.01
         
