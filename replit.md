@@ -1,10 +1,20 @@
-# Trading Platform - HMM & Sharpe Analysis
+# Trading Platform - HMM & Kelly Criterion Analysis
 
 ## Overview
 
-This is a comprehensive trading platform built with Streamlit that combines Hidden Markov Model (HMM) regime detection with Sharpe ratio analysis. The application provides traders and analysts with advanced tools for market regime identification and risk-adjusted performance analysis.
+This is a comprehensive trading platform built with Streamlit that combines Hidden Markov Model (HMM) regime detection with Kelly Criterion position sizing. The application provides traders and analysts with advanced tools for market regime identification, optimal position sizing recommendations, candlestick pattern confirmation, and small cap stock screening.
 
 ## Recent Changes
+
+**October 13, 2025:**
+- **Major Update**: Replaced Sharpe Ratio analysis with Kelly Criterion position sizing calculator
+- Implemented hybrid win probability calculation using HMM regime probabilities and historical win rates
+- Added speedometer gauge visualization with 4 color-coded risk zones (Green/Yellow/Orange/Red)
+- Integrated Kelly summary card in HMM results tab for quick position sizing recommendations
+- Added data caching with 1-hour TTL and refresh buttons to prevent stale data issues
+- Updated Combined Analytics tab to display Kelly metrics instead of Sharpe ratios
+- Kelly calculator integrates seamlessly with HMM regime detection for optimal position sizing
+- Fractional Kelly support (Half Kelly 0.5x recommended for conservative trading)
 
 **July 25, 2025:**
 - Successfully integrated custom candlestick pattern recognition into HMM Trading Signal Generator
@@ -33,20 +43,23 @@ Preferred communication style: Simple, everyday language.
 The application follows a modular, single-page web application architecture built on Streamlit:
 
 - **Frontend**: Streamlit-based web interface with tabbed navigation
-- **Backend Logic**: Python modules for HMM signal generation and Sharpe ratio calculations
+- **Backend Logic**: Python modules for HMM signal generation and Kelly Criterion calculations
 - **Data Source**: Yahoo Finance API for real-time market data
-- **Visualization**: Plotly for interactive charts and graphs
+- **Visualization**: Plotly for interactive charts and speedometer gauges
 - **ML Component**: Scikit-learn Gaussian Mixture Models for regime detection
+- **Caching**: 1-hour TTL data caching with manual refresh capabilities
 
 ## Key Components
 
 ### 1. Main Application (`app.py`)
 - **Purpose**: Entry point and UI orchestration
-- **Architecture**: Tab-based interface with three main sections:
-  - HMM Trading Signals
-  - Sharpe Ratio Analysis  
-  - Combined Analytics
+- **Architecture**: Tab-based interface with four main sections:
+  - HMM Trading Signals with Kelly Summary
+  - Kelly Position Sizing with Speedometer Gauge
+  - Combined Analytics (HMM + Kelly)
+  - Small Cap Stock Screener
 - **Session Management**: Uses Streamlit session state for component persistence
+- **Caching**: Implements @st.cache_data with 1-hour TTL to prevent stale data
 
 ### 2. HMM Signal Generator (`hmm_signal_generator.py`)
 - **Purpose**: Market regime detection using Hidden Markov Models with candlestick pattern enhancement
@@ -58,13 +71,20 @@ The application follows a modular, single-page web application architecture buil
   - **Enhanced**: Candlestick pattern integration for signal confirmation
   - **Combined Signals**: STRONG_BUY/STRONG_SELL when HMM + patterns align
 
-### 3. Sharpe Calculator (`sharpe_calculator.py`)
-- **Purpose**: Risk-adjusted performance analysis
+### 3. Kelly Criterion Calculator (`kelly_calculator.py`)
+- **Purpose**: Optimal position sizing based on win probability and risk/reward ratios
+- **Technology**: Kelly Criterion formula with hybrid probability calculation
 - **Features**:
-  - Portfolio Sharpe ratio calculations
-  - Multi-asset portfolio support
-  - Risk-free rate integration (default: 4.5% 10-year Treasury)
-  - Performance metrics calculation
+  - Hybrid win probability using HMM regime probabilities × historical win rates
+  - Win/Loss ratio calculation from regime average returns
+  - Fractional Kelly support (0.5x Half Kelly recommended)
+  - Speedometer gauge visualization with 4 color-coded risk zones:
+    - Green (0-25%): Conservative
+    - Yellow (25-50%): Optimal/Moderate
+    - Orange (50-75%): Aggressive
+    - Red (75-100%): Very Aggressive/Danger
+  - Position size recommendations based on portfolio value and stop loss
+  - Integration with HMM regime detection for dynamic position sizing
 
 ### 4. Pattern Recognition (`pattern_utils.py`)
 - **Purpose**: Custom candlestick pattern detection and signal combination
@@ -86,13 +106,21 @@ The application follows a modular, single-page web application architecture buil
 
 ## Data Flow
 
-1. **Data Acquisition**: Yahoo Finance API fetches market data
+1. **Data Acquisition**: Yahoo Finance API fetches market data (cached for 1 hour)
 2. **Feature Engineering**: Raw price/volume data transformed into technical indicators
 3. **Model Processing**: 
    - HMM: Features fed to Gaussian Mixture Model for regime classification
-   - Sharpe: Returns calculated for portfolio performance analysis
-4. **Visualization**: Results rendered through Plotly charts in Streamlit interface
-5. **User Interaction**: Real-time parameter adjustment through Streamlit widgets
+   - Kelly: Win probabilities calculated from HMM regime stats × historical win rates
+4. **Position Sizing**: Kelly Criterion calculates optimal position size based on:
+   - Hybrid win probability from HMM regimes
+   - Win/Loss ratio from regime returns
+   - Portfolio value and stop loss parameters
+   - Fractional Kelly multiplier (default 0.5x)
+5. **Visualization**: 
+   - HMM: Regime charts with price overlays
+   - Kelly: Speedometer gauge with color-coded risk zones
+   - Combined: Integrated analytics dashboard
+6. **User Interaction**: Real-time parameter adjustment with instant recalculation
 
 ## External Dependencies
 
