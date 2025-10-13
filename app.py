@@ -11,9 +11,9 @@ import plotly.express as px
 from datetime import datetime, timedelta
 import yfinance as yf
 from hmm_signal_generator import HMMSignalGenerator
-from sharpe_calculator import SharpeCalculator
+from kelly_calculator import KellyCalculator
 from small_cap_screener import SmallCapScreener
-from utils import format_percentage, format_number, validate_date_range
+from utils import format_percentage, format_number, validate_date_range, get_stock_data_cached, clear_stock_data_cache, format_currency
 
 # Page configuration
 st.set_page_config(
@@ -26,9 +26,9 @@ st.set_page_config(
 def main():
     # Header
     st.title("Advanced Trading Platform")
-    st.markdown("**Hidden Markov Model Regime Detection + Professional Sharpe Ratio Analysis**")
+    st.markdown("**Hidden Markov Model Regime Detection + Kelly Criterion Position Sizing**")
     
-    # Sidebar - User Manual Download
+    # Sidebar - User Manual Download and Global Refresh
     with st.sidebar:
         st.markdown("### 📖 User Manual")
         
@@ -43,26 +43,35 @@ def main():
                 mime="text/markdown",
                 help="Download the complete user manual for this trading platform"
             )
-            st.markdown("---")
         except Exception as e:
             st.error(f"Unable to load manual: {e}")
+        
+        st.markdown("---")
+        
+        st.markdown("### 🔄 Data Refresh")
+        if st.button("🔄 Refresh All Data", help="Clear all cached data and force fresh data fetch"):
+            clear_stock_data_cache()
+            st.success("✅ All data cache cleared!")
+            st.rerun()
+        
+        st.markdown("---")
     
     # Initialize session state
     if 'hmm_generator' not in st.session_state:
         st.session_state.hmm_generator = HMMSignalGenerator()
-    if 'sharpe_calculator' not in st.session_state:
-        st.session_state.sharpe_calculator = SharpeCalculator()
+    if 'kelly_calculator' not in st.session_state:
+        st.session_state.kelly_calculator = KellyCalculator()
     if 'small_cap_screener' not in st.session_state:
         st.session_state.small_cap_screener = SmallCapScreener()
     
     # Create tabs
-    tab1, tab2, tab3, tab4 = st.tabs(["HMM Trading Signals", "📊 Sharpe Ratio Analysis", "🔬 Combined Analytics", "🔍 Small Cap Screener"])
+    tab1, tab2, tab3, tab4 = st.tabs(["HMM Trading Signals", "💰 Kelly Position Sizing", "🔬 Combined Analytics", "🔍 Small Cap Screener"])
     
     with tab1:
         hmm_trading_signals()
     
     with tab2:
-        sharpe_ratio_analysis()
+        kelly_position_sizing()
     
     with tab3:
         combined_analytics()
@@ -103,15 +112,26 @@ def hmm_trading_signals():
             help="Minimum confidence required for BUY/SELL signals"
         )
     
-    # Analysis button
-    if st.button("🚀 Generate HMM Signal", type="primary", key="hmm_analyze"):
+    # Refresh and analysis buttons
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        analyze_button = st.button("🚀 Generate HMM Signal", type="primary", key="hmm_analyze")
+    with col2:
+        refresh_hmm = st.button("🔄 Refresh", key="hmm_refresh", help="Clear cached data for fresh fetch")
+    
+    if refresh_hmm:
+        clear_stock_data_cache()
+        st.success("✅ HMM data cache cleared!")
+        st.rerun()
+    
+    if analyze_button:
         try:
             with st.spinner(f"Analyzing {symbol} market regimes..."):
-                # Download data
+                # Download data using cached function
                 end_date = datetime.now()
                 start_date = end_date - timedelta(days=int(lookback_days * 1.8))
                 
-                data = yf.download(symbol, start=start_date, end=end_date, progress=False)
+                data = get_stock_data_cached(symbol, start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d'))
                 
                 if data is None or data.empty:
                     st.error(f"❌ No data available for {symbol}")
@@ -317,290 +337,302 @@ def display_hmm_results(signal_info, regime_stats, data, states, features):
     
     st.plotly_chart(fig, use_container_width=True)
 
-def sharpe_ratio_analysis():
-    """Sharpe Ratio Analysis Tab"""
-    st.header("📊 Professional Sharpe Ratio Calculator")
+def create_kelly_gauge(applied_kelly_pct, full_kelly_pct=None):
+    """Create speedometer gauge for Kelly percentage"""
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number",
+        value=applied_kelly_pct,
+        title={'text': "Applied Kelly %", 'font': {'size': 24}},
+        number={'suffix': "%", 'font': {'size': 40}},
+        gauge={
+            'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "darkgray"},
+            'bar': {'color': "darkblue", 'thickness': 0.3},
+            'bgcolor': "white",
+            'borderwidth': 2,
+            'bordercolor': "gray",
+            'steps': [
+                {'range': [0, 25], 'color': '#28a745'},      # Green - Conservative
+                {'range': [25, 50], 'color': '#ffc107'},     # Yellow - Moderate/Optimal
+                {'range': [50, 75], 'color': '#fd7e14'},     # Orange - Aggressive
+                {'range': [75, 100], 'color': '#dc3545'}     # Red - Very Aggressive/Danger
+            ],
+            'threshold': {
+                'line': {'color': "black", 'width': 4},
+                'thickness': 0.75,
+                'value': full_kelly_pct if full_kelly_pct else applied_kelly_pct
+            }
+        }
+    ))
     
-    st.info("The Sharpe ratio measures risk-adjusted returns by comparing portfolio returns to the risk-free rate, divided by portfolio volatility. Higher values indicate better risk-adjusted performance.")
-    
-    # Method selection
-    method = st.selectbox(
-        "Choose calculation method:",
-        ["Portfolio Builder", "Manual Input"],
-        help="Select how you want to calculate the Sharpe ratio"
+    fig.update_layout(
+        height=300,
+        margin=dict(l=20, r=20, t=50, b=20),
+        font={'size': 16}
     )
     
-    if method == "Portfolio Builder":
-        portfolio_builder_interface()
-    else:
-        manual_input_interface()
+    return fig
 
-def portfolio_builder_interface():
-    """Portfolio Builder interface"""
-    st.subheader("🏗️ Portfolio Builder")
+def kelly_position_sizing():
+    """Kelly Criterion Position Sizing Tab"""
+    st.header("💰 Kelly Criterion Position Sizing")
     
-    col1, col2 = st.columns([2, 1])
+    st.info("Calculate optimal position sizes using the Kelly Criterion. Integrates with HMM regime detection or use manual inputs.")
     
-    with col1:
-        # Portfolio input
-        num_assets = st.number_input("Number of assets:", min_value=1, max_value=10, value=2)
-        
-        symbols = []
-        weights = []
-        
-        for i in range(num_assets):
-            col_symbol, col_weight = st.columns([2, 1])
-            
-            with col_symbol:
-                symbol = st.text_input(f"Asset {i+1} Symbol:", value="AAPL" if i == 0 else "GOOGL" if i == 1 else "", key=f"symbol_{i}")
-                symbols.append(symbol.upper())
-            
-            with col_weight:
-                weight = st.number_input(f"Weight %:", min_value=0.0, max_value=100.0, 
-                                       value=50.0 if num_assets == 2 else 100.0/num_assets, key=f"weight_{i}")
-                weights.append(weight / 100.0)
-        
-        # Date range
-        col_start, col_end = st.columns(2)
-        
-        with col_start:
-            start_date = st.date_input(
-                "Start Date:",
-                value=datetime.now() - timedelta(days=365),
-                max_value=datetime.now()
-            )
-        
-        with col_end:
-            end_date = st.date_input(
-                "End Date:",
-                value=datetime.now(),
-                max_value=datetime.now()
-            )
-        
-        # Risk-free rate
-        risk_free_rate = st.number_input(
-            "Risk-Free Rate (%):",
-            value=st.session_state.sharpe_calculator.risk_free_rate * 100,
-            min_value=0.0,
-            max_value=10.0,
-            format="%.2f",
-            help="Current 10-year Treasury rate is auto-loaded"
+    # Check if HMM results are available
+    has_hmm_results = 'hmm_results' in st.session_state
+    
+    # Mode selection
+    if has_hmm_results:
+        mode = st.radio(
+            "Calculation Mode:",
+            ["Use HMM Results", "Manual Input"],
+            help="Use HMM regime data or enter parameters manually"
         )
+    else:
+        mode = "Manual Input"
+        st.warning("💡 Run HMM analysis first to auto-populate Kelly calculations from regime data")
     
-    with col2:
-        st.subheader("⚖️ Portfolio Summary")
-        
-        # Validation
-        total_weight = sum(weights)
-        valid_symbols = all(symbol.strip() for symbol in symbols)
-        
-        if abs(total_weight - 1.0) > 0.01:
-            st.error(f"⚠️ Weights sum to {total_weight:.1%}, must equal 100%")
-        elif not valid_symbols:
-            st.error("⚠️ Please enter all stock symbols")
-        else:
-            st.success("✅ Portfolio is valid")
-            
-            # Display portfolio
-            portfolio_df = pd.DataFrame({
-                'Symbol': symbols,
-                'Weight': [f"{w:.1%}" for w in weights]
-            })
-            st.table(portfolio_df)
-    
-    # Calculate button
-    if st.button("🚀 Calculate Sharpe Ratio", type="primary", key="sharpe_calc"):
-        if valid_symbols and abs(total_weight - 1.0) <= 0.01:
-            try:
-                with st.spinner("Downloading data and calculating..."):
-                    results = st.session_state.sharpe_calculator.calculate_simple_sharpe(
-                        symbols, weights, 
-                        start_date.strftime('%Y-%m-%d'), 
-                        end_date.strftime('%Y-%m-%d'),
-                        risk_free_rate / 100
-                    )
-                
-                # Store results for combined analytics
-                st.session_state.sharpe_results = results
-                st.session_state.sharpe_symbols = symbols
-                st.session_state.sharpe_weights = weights
-                
-                display_sharpe_results(results, symbols, weights)
-                
-            except Exception as e:
-                st.error(f"❌ Error: {str(e)}")
-        else:
-            st.error("❌ Please fix portfolio issues before calculating")
+    if mode == "Use HMM Results" and has_hmm_results:
+        kelly_from_hmm()
+    else:
+        kelly_manual_input()
 
-def manual_input_interface():
-    """Manual input interface"""
-    st.subheader("✏️ Manual Input")
+def kelly_from_hmm():
+    """Kelly calculation from HMM results"""
+    st.subheader("📊 HMM-Based Kelly Calculation")
     
-    st.info("Use this method when you already know your portfolio's return and volatility. Perfect for analyzing existing investment statements or theoretical portfolios.")
+    hmm_results = st.session_state.hmm_results
+    regime_stats = hmm_results['regime_stats']
+    probabilities = hmm_results['probabilities']
+    current_probs = probabilities[-1]
     
+    # Kelly parameters
     col1, col2 = st.columns(2)
     
     with col1:
-        portfolio_return = st.number_input(
-            "Annual Portfolio Return (%):",
-            value=12.0,
-            min_value=-50.0,
-            max_value=100.0,
-            format="%.2f",
-            help="Your portfolio's annual return percentage"
+        portfolio_value = st.number_input(
+            "Portfolio Value ($):",
+            min_value=1000.0,
+            max_value=10000000.0,
+            value=100000.0,
+            step=1000.0,
+            format="%.0f"
         )
         
-        portfolio_volatility = st.number_input(
-            "Annual Portfolio Volatility (%):",
-            value=18.0,
+        applied_fraction = st.slider(
+            "Kelly Fraction:",
             min_value=0.1,
-            max_value=100.0,
-            format="%.2f",
-            help="Standard deviation of your portfolio returns"
+            max_value=1.0,
+            value=0.5,
+            step=0.05,
+            help="Fraction of Kelly to apply (0.5 = Half Kelly, recommended)"
         )
     
     with col2:
-        risk_free_rate = st.number_input(
-            "Risk-Free Rate (%):",
-            value=st.session_state.sharpe_calculator.risk_free_rate * 100,
-            min_value=0.0,
-            max_value=10.0,
-            format="%.2f",
-            help="Current 10-year Treasury rate"
-        )
-        
-        st.markdown("### 📊 Quick Examples")
-        if st.button("Conservative Portfolio"):
-            st.session_state.manual_return = 8.0
-            st.session_state.manual_vol = 12.0
-        if st.button("Aggressive Portfolio"):
-            st.session_state.manual_return = 15.0
-            st.session_state.manual_vol = 25.0
+        stop_loss_pct = st.slider(
+            "Stop Loss (%):",
+            min_value=1.0,
+            max_value=20.0,
+            value=5.0,
+            step=0.5,
+            format="%.1f%%"
+        ) / 100
     
-    if st.button("🚀 Calculate Sharpe Ratio", type="primary", key="manual_sharpe"):
+    if st.button("💰 Calculate Kelly Position Size", type="primary"):
         try:
-            results = st.session_state.sharpe_calculator.calculate_manual_sharpe(
-                portfolio_return / 100,
-                portfolio_volatility / 100,
-                risk_free_rate / 100
+            kelly = st.session_state.kelly_calculator
+            
+            results = kelly.calculate_from_hmm_results(
+                regime_stats,
+                current_probs,
+                portfolio_value,
+                applied_fraction,
+                stop_loss_pct
             )
             
-            display_manual_sharpe_results(results)
+            display_kelly_results(results)
             
         except Exception as e:
             st.error(f"❌ Error: {str(e)}")
 
-def display_sharpe_results(results, symbols, weights):
-    """Display Sharpe calculation results"""
-    st.subheader("📊 Sharpe Analysis Results")
+def kelly_manual_input():
+    """Manual Kelly calculation"""
+    st.subheader("✏️ Manual Kelly Input")
     
-    # Main Sharpe ratio display
-    sharpe = results['sharpe_ratio']
-    rating, color = st.session_state.sharpe_calculator.get_sharpe_rating(sharpe)
+    col1, col2 = st.columns(2)
     
-    st.markdown(f"## Sharpe Ratio: {format_number(sharpe, 3)}")
-    st.markdown(f"**Rating: {rating}**")
+    with col1:
+        win_probability = st.slider(
+            "Win Probability:",
+            min_value=0.0,
+            max_value=1.0,
+            value=0.55,
+            step=0.01,
+            format="%.2f",
+            help="Probability of winning trade (0 to 1)"
+        )
+        
+        avg_win_pct = st.number_input(
+            "Average Win (%):",
+            min_value=0.1,
+            max_value=100.0,
+            value=5.0,
+            step=0.5,
+            format="%.1f"
+        )
+        
+        avg_loss_pct = st.number_input(
+            "Average Loss (%):",
+            min_value=0.1,
+            max_value=100.0,
+            value=3.0,
+            step=0.5,
+            format="%.1f"
+        )
     
-    # Key metrics
+    with col2:
+        portfolio_value = st.number_input(
+            "Portfolio Value ($):",
+            min_value=1000.0,
+            max_value=10000000.0,
+            value=100000.0,
+            step=1000.0,
+            format="%.0f"
+        )
+        
+        applied_fraction = st.slider(
+            "Kelly Fraction:",
+            min_value=0.1,
+            max_value=1.0,
+            value=0.5,
+            step=0.05,
+            help="0.5 = Half Kelly (recommended)"
+        )
+        
+        stop_loss_pct = st.slider(
+            "Stop Loss (%):",
+            min_value=1.0,
+            max_value=20.0,
+            value=5.0,
+            step=0.5,
+            format="%.1f%%"
+        ) / 100
+    
+    if st.button("💰 Calculate Kelly Position Size", type="primary", key="kelly_manual"):
+        try:
+            kelly = st.session_state.kelly_calculator
+            
+            results = kelly.calculate_manual_kelly(
+                win_probability,
+                avg_win_pct,
+                avg_loss_pct,
+                portfolio_value,
+                applied_fraction,
+                stop_loss_pct
+            )
+            
+            display_kelly_results(results)
+            
+        except Exception as e:
+            st.error(f"❌ Error: {str(e)}")
+
+def display_kelly_results(results):
+    """Display Kelly calculation results"""
+    st.subheader("📊 Kelly Position Sizing Results")
+    
+    position_info = results['position_info']
+    risk_level = results['risk_level']
+    
+    # Main metrics
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
         st.metric(
-            label="Annual Return",
-            value=format_percentage(results['annual_return']),
-            help="Annualized portfolio return"
+            "Full Kelly %",
+            f"{position_info['full_kelly_fraction']*100:.1f}%",
+            help="Optimal Kelly percentage"
         )
     
     with col2:
         st.metric(
-            label="Annual Volatility", 
-            value=format_percentage(results['annual_volatility']),
-            help="Annualized standard deviation"
+            "Applied Kelly %",
+            f"{position_info['applied_kelly']*100:.1f}%",
+            help=f"Using {position_info['applied_fraction']*100:.0f}% Kelly fraction"
         )
     
     with col3:
         st.metric(
-            label="Max Drawdown",
-            value=format_percentage(results['max_drawdown']),
-            help="Largest peak-to-trough decline"
+            "Position Size",
+            format_currency(position_info['position_size']),
+            help="Recommended position size"
         )
     
     with col4:
         st.metric(
-            label="Win Rate",
-            value=format_percentage(results['win_rate']),
-            help="Percentage of positive trading days"
+            "Risk Budget",
+            format_currency(position_info['risk_budget']),
+            help="Maximum capital at risk"
         )
     
-    # Performance chart
-    st.subheader("📈 Portfolio Performance")
+    # Speedometer Gauge
+    st.subheader("📊 Risk Level Gauge")
     
-    fig = go.Figure()
-    
-    # Cumulative returns
-    dates = results['cumulative_returns'].index
-    fig.add_trace(go.Scatter(
-        x=dates,
-        y=(results['cumulative_returns'] - 1) * 100,
-        mode='lines',
-        name='Portfolio',
-        line=dict(color='blue', width=2)
-    ))
-    
-    fig.update_layout(
-        title="Cumulative Returns (%)",
-        xaxis_title="Date",
-        yaxis_title="Return (%)",
-        hovermode='x unified'
+    gauge_fig = create_kelly_gauge(
+        position_info['applied_kelly'] * 100,
+        position_info['full_kelly_fraction'] * 100
     )
+    st.plotly_chart(gauge_fig, use_container_width=True)
     
-    st.plotly_chart(fig, use_container_width=True)
+    # Risk level indicator
+    st.markdown(f"### {risk_level['emoji']} {risk_level['level']}")
+    st.info(f"**{risk_level['description']}**")
     
-    # Benchmark comparison
-    st.subheader("🏆 Benchmark Comparison")
-    benchmark_text = st.session_state.sharpe_calculator.get_benchmark_comparison(sharpe)
-    st.text(benchmark_text)
-    
-    # Additional info
-    st.info(f"""
-    **Calculation Details:**
-    • Portfolio: {', '.join(f'{s} ({w:.1%})' for s, w in zip(symbols, weights))}
-    • Risk-Free Rate: {format_percentage(results['risk_free_rate'])}
-    • Observations: {results['num_observations']} trading days
-    • Total Return: {format_percentage(results['total_return'])}
+    # Color zone legend
+    st.markdown("""
+    **Kelly Zones:**
+    - 🟢 **0-25%**: Conservative/Quarter Kelly - Safe, lower growth
+    - 🟡 **25-50%**: Moderate/Half Kelly - **OPTIMAL ZONE** (recommended)
+    - 🟠 **50-75%**: Aggressive/Three-Quarter Kelly - Higher risk
+    - 🔴 **75-100%**: Very Aggressive/Full Kelly+ - Danger zone
     """)
-
-def display_manual_sharpe_results(results):
-    """Display manual calculation results"""
-    st.subheader("📊 Manual Sharpe Results")
     
-    # Main Sharpe ratio display
-    sharpe = results['sharpe_ratio']
-    rating, color = st.session_state.sharpe_calculator.get_sharpe_rating(sharpe)
+    # Recommendation
+    st.subheader("💡 Recommendation")
+    st.success(results['recommendation'])
     
-    st.markdown(f"## Sharpe Ratio: {format_number(sharpe, 3)}")
-    st.markdown(f"**Rating: {rating}**")
-    
-    # Calculation breakdown
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.metric(
-            label="Portfolio Return",
-            value=format_percentage(results['portfolio_return'])
-        )
-    
-    with col2:
-        st.metric(
-            label="Portfolio Volatility",
-            value=format_percentage(results['portfolio_volatility'])
-        )
-    
-    with col3:
-        st.metric(
-            label="Risk-Free Rate",
-            value=format_percentage(results['risk_free_rate'])
-        )
+    # Detailed breakdown
+    with st.expander("📋 Detailed Calculation Breakdown"):
+        st.markdown(f"""
+        **Position Sizing Details:**
+        - Portfolio Value: {format_currency(position_info['portfolio_value'])}
+        - Full Kelly Fraction: {position_info['full_kelly_fraction']*100:.2f}%
+        - Applied Fraction: {position_info['applied_fraction']*100:.0f}% (Fractional Kelly)
+        - Applied Kelly %: {position_info['applied_kelly']*100:.2f}%
+        - Risk Budget: {format_currency(position_info['risk_budget'])}
+        - Stop Loss: {position_info['stop_loss_pct']*100:.1f}%
+        - Position Size: {format_currency(position_info['position_size'])}
+        - Stop Loss Amount: {format_currency(position_info['stop_loss_amount'])}
+        """)
+        
+        if 'win_prob_breakdown' in results:
+            wpb = results['win_prob_breakdown']
+            st.markdown(f"""
+            **Win Probability Calculation (Hybrid):**
+            - Bull Regime Probability: {wpb['bull_prob']*100:.1f}%
+            - Bull Win Rate: {wpb['bull_win_rate']*100:.1f}%
+            - Sideways Regime Probability: {wpb['sideways_prob']*100:.1f}%
+            - Sideways Win Rate: {wpb['sideways_win_rate']*100:.1f}%
+            - **Combined Win Probability: {wpb['combined_win_prob']*100:.1f}%**
+            """)
+        
+        if 'win_loss_breakdown' in results:
+            wlb = results['win_loss_breakdown']
+            st.markdown(f"""
+            **Win/Loss Ratio:**
+            - Average Win: {wlb['avg_win']:.2f}%
+            - Average Loss: {wlb['avg_loss']:.2f}%
+            - Win/Loss Ratio: {wlb['win_loss_ratio']:.2f}
+            """)
 
 def combined_analytics():
     """Combined Analytics Tab"""
