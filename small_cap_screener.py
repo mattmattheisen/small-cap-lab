@@ -28,13 +28,72 @@ class SmallCapScreener:
             'profit_margin_min': 0.05,  # 5% minimum profit margin
         }
         
-        # Small cap stock universe (sample - in production would be much larger)
-        self.small_cap_universe = [
+        # Expanded small cap stock universe - rotates to show different stocks
+        # Tech & Software
+        tech_stocks = [
             'SOFI', 'PLTR', 'RBLX', 'COIN', 'HOOD', 'AFRM', 'SQ', 'UPST',
-            'OPEN', 'LCID', 'RIVN', 'CHPT', 'BBBY', 'GME', 'AMC', 'CLOV',
-            'SPCE', 'NKLA', 'WKHS', 'RIDE', 'GOEV', 'CANOO', 'FISV', 'PYPL',
-            'ROKU', 'NFLX', 'SNOW', 'CRWD', 'ZM', 'DOCU', 'OKTA', 'TWLO'
+            'OPEN', 'ROKU', 'SNOW', 'CRWD', 'ZM', 'DOCU', 'OKTA', 'TWLO',
+            'DDOG', 'NET', 'ESTC', 'MDB', 'TEAM', 'HUBS', 'ZS', 'VEEV',
+            'TTD', 'APPS', 'APPN', 'PD', 'BILL', 'GTLB', 'S', 'PATH',
+            'IONQ', 'QBTS', 'RGTI', 'ARQQ', 'AI', 'BBAI', 'SOUN', 'SMCI'
         ]
+        
+        # EVs & Clean Energy  
+        ev_stocks = [
+            'LCID', 'RIVN', 'CHPT', 'BLNK', 'EVGO', 'NIO', 'XPEV', 'LI',
+            'FSR', 'RIDE', 'GOEV', 'QS', 'ENVX', 'SES', 'PLUG', 'FCEL',
+            'BE', 'RUN', 'ENPH', 'NOVA', 'WOLF', 'MAXN', 'CSIQ', 'JKS'
+        ]
+        
+        # FinTech & Crypto
+        fintech_stocks = [
+            'PYPL', 'MARA', 'RIOT', 'CLSK', 'BITF', 'HUT', 'ARBK', 'CIFR',
+            'UPST', 'LC', 'AVNT', 'OPFI', 'NU', 'DAVE', 'MGNI', 'PUBM',
+            'ACHR', 'JOBY', 'LILM', 'EVTL', 'ASTS', 'RKLB', 'ASTR', 'SPIR'
+        ]
+        
+        # Healthcare & Biotech
+        health_stocks = [
+            'IONS', 'VRTX', 'EXAS', 'TDOC', 'DOCS', 'HIMS', 'ONEM', 'TMDX',
+            'CRSP', 'EDIT', 'NTLA', 'BEAM', 'VCYT', 'PACB', 'ILMN', 'NVTA',
+            'RXRX', 'SDGR', 'LEGN', 'KYMR', 'SANA', 'FATE', 'LYEL', 'SURF'
+        ]
+        
+        # Consumer & Retail
+        consumer_stocks = [
+            'ETSY', 'W', 'CHWY', 'CVNA', 'CARS', 'FOUR', 'GSHD', 'MNDY',
+            'SHOP', 'MELI', 'SE', 'GRAB', 'DIDI', 'CPNG', 'LYFT', 'UBER',
+            'DASH', 'ABNB', 'EXPE', 'BKNG', 'TOST', 'BROS', 'CAVA', 'WING'
+        ]
+        
+        # Gaming & Entertainment
+        gaming_stocks = [
+            'RDDT', 'PINS', 'SNAP', 'MTCH', 'BMBL', 'RBLX', 'U', 'TTWO',
+            'EA', 'DKNG', 'PENN', 'RSI', 'LNW', 'FUBO', 'NFLX', 'PARA',
+            'WBD', 'DIS', 'ROKU', 'SPOT', 'SONO', 'ATUS', 'SIRI', 'LSXMA'
+        ]
+        
+        # Industrial & Manufacturing
+        industrial_stocks = [
+            'TSLA', 'XPEV', 'MP', 'ALB', 'SQM', 'LAC', 'PLL', 'LTHM',
+            'RR', 'CARR', 'GNRC', 'AZEK', 'TREX', 'WOLF', 'ENPH', 'SEDG',
+            'FSLR', 'SPWR', 'RUN', 'MAXN', 'ARRY', 'AMPS', 'POWI', 'VICR'
+        ]
+        
+        # Combine all and rotate selection
+        all_stocks = (tech_stocks + ev_stocks + fintech_stocks + 
+                     health_stocks + consumer_stocks + gaming_stocks + 
+                     industrial_stocks)
+        
+        # Remove duplicates and store full universe
+        self.full_universe = list(set(all_stocks))
+        
+        # Rotate universe - use microsecond timestamp for true randomness on each init
+        import random
+        import time
+        # Use current timestamp in microseconds for unique seed each time
+        random.seed(int(time.time() * 1000000))  # Changes every microsecond
+        self.small_cap_universe = random.sample(self.full_universe, min(80, len(self.full_universe)))
     
     def get_stock_fundamentals(self, symbol):
         """Get fundamental data for a single stock"""

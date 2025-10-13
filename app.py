@@ -49,9 +49,12 @@ def main():
         st.markdown("---")
         
         st.markdown("### 🔄 Data Refresh")
-        if st.button("🔄 Refresh All Data", help="Clear all cached data and force fresh data fetch"):
+        if st.button("🔄 Refresh All Data", help="Clear all cached data and rotate screener universe"):
             clear_stock_data_cache()
-            st.success("✅ All data cache cleared!")
+            # Reinitialize screener to rotate stock universe
+            if 'small_cap_screener' in st.session_state:
+                del st.session_state.small_cap_screener
+            st.toast("✅ All data cache cleared! Screener universe rotated!", icon="✅")
             st.rerun()
         
         st.markdown("---")
@@ -121,7 +124,7 @@ def hmm_trading_signals():
     
     if refresh_hmm:
         clear_stock_data_cache()
-        st.success("✅ HMM data cache cleared!")
+        st.toast("✅ HMM data cache cleared!", icon="✅")
         st.rerun()
     
     if analyze_button:
@@ -935,8 +938,20 @@ def small_cap_screener():
         st.metric("Daily Volume", f"≥${min_volume_usd/1e6:.1f}M")
         st.metric("Stocks to Screen", len(screener.small_cap_universe))
     
-    # Run screening button
-    if st.button("🚀 Run Small Cap Screen", type="primary", key="run_screener"):
+    # Run screening button with refresh option
+    col_btn1, col_btn2 = st.columns([3, 1])
+    
+    with col_btn1:
+        run_screen = st.button("🚀 Run Small Cap Screen", type="primary", key="run_screener")
+    
+    with col_btn2:
+        if st.button("🔄 Rotate Stocks", help="Pick new stocks to screen from universe"):
+            # Reinitialize screener with new random selection
+            st.session_state.small_cap_screener = SmallCapScreener()
+            st.toast("✅ Stock universe rotated!", icon="🔄")
+            st.rerun()
+    
+    if run_screen:
         try:
             with st.spinner("Screening small cap stocks... This may take a few minutes."):
                 results = screener.screen_stocks(criteria)
