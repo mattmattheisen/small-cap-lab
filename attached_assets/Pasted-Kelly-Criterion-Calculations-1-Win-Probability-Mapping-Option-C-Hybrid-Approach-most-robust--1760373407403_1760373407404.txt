@@ -1,0 +1,80 @@
+Kelly Criterion Calculations
+1. Win Probability Mapping:
+Option C - Hybrid Approach (most robust):
+
+Use the regime probability weighted by regime win rates
+Formula: p_win = (bull_prob × bull_win_rate) + (sideways_prob × sideways_win_rate)
+Where win_rate = % of positive return days in that regime
+This combines both regime confidence AND historical success rate
+
+Why? The HMM confidence tells you what regime you're likely in, but the historical win rate tells you how often that regime actually produces wins. Both matter.
+2. Win/Loss Ratio:
+Use regime's average returns, but calculated properly:
+avg_win = mean of all positive return days in Bull regime
+avg_loss = mean of all negative return days in Bear regime (as negative number)
+NOT just the regime's overall average return - you want the conditional averages of winning vs losing days specifically.
+3. Capital/Portfolio Size:
+Users should input total portfolio value because:
+
+Kelly gives you a percentage, but showing dollar amounts makes it actionable
+You can calculate actual position size: Position Size = (Portfolio × Kelly%) / Stop Loss %
+Provides risk budget in dollars: Risk = Portfolio × Kelly%
+Users can immediately see "invest $X with stop loss at $Y"
+
+Integration Details
+1. Tab Placement:
+YES - Replace Tab 2 entirely with Kelly Criterion
+
+Sharpe Ratio is backward-looking and doesn't help with position sizing decisions
+Kelly is forward-looking and directly actionable
+Having both creates confusion about which to use
+Agree 100% - remove Sharpe completely
+
+2. Automatic Calculation:
+Show Kelly results automatically in HMM tab PLUS have dedicated Kelly tab:
+
+In HMM results (Tab 1): Show a summary card with key Kelly metrics
+Dedicated Kelly tab (Tab 2): Full detailed Kelly calculator with all options
+This gives quick glance + deep dive options
+
+Data Refresh
+1. Refresh Button Location:
+Both - tiered approach:
+
+Global refresh at the top navigation (clears everything)
+Per-tab refresh buttons (just that feature's data)
+Users often want to refresh just one stock without losing screener results
+
+2. Cache Implementation:
+The staleness is likely from:
+
+Streamlit's @st.cache_data decorator persisting too long
+yfinance's internal caching
+Session state holding old DataFrames
+
+Fix with:
+python@st.cache_data(ttl=3600)  # 1 hour max
+def get_stock_data(ticker, start, end):
+    return yf.download(ticker, start=start, end=end, progress=False)
+My Clear Recommendation:
+Tell Replit Agent:
+Remove the Sharpe Ratio tab completely and replace it with Kelly Criterion position sizing.
+
+For Kelly calculations:
+- Win probability = (bull_probability × % of positive days in bull regime) + (sideways_probability × % of positive days in sideways regime)
+- Average win = mean of positive return days in bull regime
+- Average loss = mean of negative return days in bear regime  
+- Users input their total portfolio size
+- Calculate and show: Kelly %, position size in $, and risk budget in $
+
+Integration:
+- Add a Kelly summary card to the HMM results showing key metrics
+- Make Tab 2 the full detailed Kelly calculator
+- Kelly should auto-populate from HMM results but allow manual override
+
+Data refresh:
+- Add global "Refresh All Data" button in sidebar
+- Add per-tab refresh buttons for HMM and Screener
+- Set cache TTL to 1 hour max using @st.cache_data(ttl=3600)
+- Clear yfinance cache when refresh is clicked
+Yes, absolutely get rid of Sharpe Ratio completely. It doesn't help traders make position sizing decisions, which is what your users actually need. Kelly directly answers "how much should I bet?" which is the critical question.
