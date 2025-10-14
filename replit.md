@@ -6,6 +6,14 @@ This is a comprehensive trading platform built with Streamlit that combines Hidd
 
 ## Recent Changes
 
+**October 14, 2025:**
+- **CSV Export Fix**: Resolved Excel date conversion issue in Small Cap Screener
+- Created separate `format_csv_export()` method for proper numeric CSV formatting
+- Score column now exports as plain numbers (7, 6, 5) instead of "7/10" text
+- Changed header to "Score (out of 10)" to prevent Excel date misinterpretation
+- All numeric columns (Market Cap, percentages, ratios) now export as pure numbers
+- Added dedicated CSV download buttons for both current and previous screening results
+
 **October 13, 2025:**
 - **Major Update**: Replaced Sharpe Ratio analysis with Kelly Criterion position sizing calculator
 - Implemented hybrid win probability calculation using HMM regime probabilities and historical win rates
@@ -15,6 +23,8 @@ This is a comprehensive trading platform built with Streamlit that combines Hidd
 - Updated Combined Analytics tab to display Kelly metrics instead of Sharpe ratios
 - Kelly calculator integrates seamlessly with HMM regime detection for optimal position sizing
 - Fractional Kelly support (Half Kelly 0.5x recommended for conservative trading)
+- Fixed Small Cap Screener rotation: expanded universe to 200+ stocks with microsecond-based random seed
+- Added toast notifications for all data refresh actions
 
 **July 25, 2025:**
 - Successfully integrated custom candlestick pattern recognition into HMM Trading Signal Generator
