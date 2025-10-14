@@ -341,3 +341,25 @@ class SmallCapScreener:
             })
         
         return pd.DataFrame(display_data)
+    
+    def format_csv_export(self, results):
+        """Format screening results for CSV export with proper number formatting"""
+        if not results:
+            return pd.DataFrame()
+        
+        export_data = []
+        for stock in results:
+            export_data.append({
+                'Symbol': stock['symbol'],
+                'Score (out of 10)': stock['screening_score'],  # Plain number, not date format
+                'Market Cap ($B)': stock['market_cap']/1e9 if stock['market_cap'] > 0 else None,
+                'Revenue Growth (%)': stock['revenue_growth']*100 if stock['revenue_growth'] else None,
+                'EPS Growth (%)': stock['earnings_growth']*100 if stock['earnings_growth'] else None,
+                'Profit Margin (%)': stock['profit_margin']*100 if stock['profit_margin'] else None,
+                'PEG Ratio': stock['peg_ratio'] if stock['peg_ratio'] else None,
+                'P/E Ratio': stock['trailing_pe'] if stock['trailing_pe'] else None,
+                'Debt/Equity (%)': stock['debt_to_equity'] if stock['debt_to_equity'] else None,
+                'Current Price ($)': stock['current_price'] if stock['current_price'] else None,
+            })
+        
+        return pd.DataFrame(export_data)

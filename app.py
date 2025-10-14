@@ -977,7 +977,9 @@ def small_cap_screener():
                     
                     # Export option
                     st.subheader("💾 Export Results")
-                    csv = results_df.to_csv(index=False)
+                    # Use CSV export format with proper number formatting
+                    csv_df = screener.format_csv_export(results)
+                    csv = csv_df.to_csv(index=False)
                     st.download_button(
                         label="Download Results as CSV",
                         data=csv,
@@ -999,6 +1001,18 @@ def small_cap_screener():
             
             st.subheader("📊 Previous Screening Results")
             st.dataframe(results_df, use_container_width=True)
+            
+            # Add CSV export for previous results
+            st.subheader("💾 Export Previous Results")
+            csv_df = screener.format_csv_export(results)
+            csv = csv_df.to_csv(index=False)
+            st.download_button(
+                label="Download Results as CSV",
+                data=csv,
+                file_name=f"small_cap_screen_previous_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                mime="text/csv",
+                key="download_previous_results"
+            )
 
 def display_stock_details(stock):
     """Display detailed information for a screened stock"""
