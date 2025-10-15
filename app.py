@@ -197,7 +197,7 @@ def hmm_trading_signals():
                 display_hmm_results(signal_info, regime_stats, data, states, features)
                 
         except Exception as e:
-            st.error(f"❌ Error: {str(e)}")
+            st.error(f"Error: {str(e)}")
 
 def display_hmm_results(signal_info, regime_stats, data, states, features):
     """Display HMM analysis results with candlestick patterns"""
@@ -582,7 +582,7 @@ def kelly_from_hmm():
             display_kelly_results(results)
             
         except Exception as e:
-            st.error(f"❌ Error: {str(e)}")
+            st.error(f"Error: {str(e)}")
 
 def kelly_manual_input():
     """Manual Kelly calculation"""
@@ -663,74 +663,72 @@ def kelly_manual_input():
             display_kelly_results(results)
             
         except Exception as e:
-            st.error(f"❌ Error: {str(e)}")
+            st.error(f"Error: {str(e)}")
 
 def display_kelly_results(results):
-    """Display Kelly calculation results"""
+    """Display Kelly calculation results with Excel styling"""
     st.subheader("Kelly Position Sizing Results")
     
     position_info = results['position_info']
     risk_level = results['risk_level']
     
-    # Main metrics
+    # Main metrics using Excel-style tables
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.metric(
+        st.markdown(create_metric_table(
             "Full Kelly %",
-            f"{position_info['full_kelly_fraction']*100:.1f}%",
-            help="Optimal Kelly percentage"
-        )
+            f"{position_info['full_kelly_fraction']*100:.1f}%"
+        ), unsafe_allow_html=True)
     
     with col2:
-        st.metric(
+        st.markdown(create_metric_table(
             "Applied Kelly %",
-            f"{position_info['applied_kelly']*100:.1f}%",
-            help=f"Using {position_info['applied_fraction']*100:.0f}% Kelly fraction"
-        )
+            f"{position_info['applied_kelly']*100:.1f}%"
+        ), unsafe_allow_html=True)
     
     with col3:
-        st.metric(
+        st.markdown(create_metric_table(
             "Position Size",
-            format_currency(position_info['position_size']),
-            help="Recommended position size"
-        )
+            format_currency(position_info['position_size'])
+        ), unsafe_allow_html=True)
     
     with col4:
-        st.metric(
+        st.markdown(create_metric_table(
             "Risk Budget",
-            format_currency(position_info['risk_budget']),
-            help="Maximum capital at risk"
-        )
+            format_currency(position_info['risk_budget'])
+        ), unsafe_allow_html=True)
     
     # Transaction Costs & Edge Analysis (if available)
     if 'transaction_costs' in results and 'edge_analysis' in results:
-        st.subheader("💸 Transaction Costs & Edge Analysis")
+        st.subheader("Transaction Costs & Edge Analysis")
         
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
             tx_cost = results['transaction_costs']['total_round_trip_pct'] * 100
-            st.metric("Transaction Cost", f"{tx_cost:.2f}%", help="Total round-trip cost (entry + exit)")
+            st.markdown(create_metric_table("Transaction Cost", f"{tx_cost:.2f}%"), unsafe_allow_html=True)
         
         with col2:
             gross_edge = results['edge_analysis']['gross_edge'] * 100
-            st.metric("Gross Edge", f"{gross_edge:.2f}%", help="Edge before costs")
+            st.markdown(create_metric_table("Gross Edge", f"{gross_edge:.2f}%"), unsafe_allow_html=True)
         
         with col3:
             net_edge = results['edge_analysis']['net_edge'] * 100
             tradeable = results['edge_analysis']['tradeable']
-            st.metric(
-                "Net Edge", 
-                f"{net_edge:.2f}%",
-                delta="Tradeable" if tradeable else "❌ Skip",
-                help="Edge after transaction costs and decay"
-            )
+            net_edge_text = f"{net_edge:.2f}%"
+            if tradeable:
+                bg_color = EXCEL_COLORS['success_bg']
+                text = f"{net_edge_text} ✓"
+            else:
+                bg_color = EXCEL_COLORS['danger_bg']
+                text = f"{net_edge_text} ✗"
+            st.markdown(create_metric_table("Net Edge", text, bg_color=bg_color), unsafe_allow_html=True)
         
         with col4:
             if 'atr_pct' in results:
                 atr = results['atr_pct'] * 100
-                st.metric("ATR (14-day)", f"{atr:.2f}%", help="Volatility measure")
+                st.markdown(create_metric_table("ATR (14-day)", f"{atr:.2f}%"), unsafe_allow_html=True)
         
         # Show regime multiplier if available
         if 'regime_multiplier' in results:
@@ -750,21 +748,21 @@ def display_kelly_results(results):
     )
     st.plotly_chart(gauge_fig, use_container_width=True)
     
-    # Risk level indicator
-    st.markdown(f"### {risk_level['emoji']} {risk_level['level']}")
+    # Risk level indicator with Excel styling
+    st.markdown(f"### {risk_level['level']}")
     st.info(f"**{risk_level['description']}**")
     
-    # Color zone legend
+    # Color zone legend - Excel style
     st.markdown("""
     **Kelly Zones:**
-    - 🟢 **0-25%**: Conservative/Quarter Kelly - Safe, lower growth
-    - 🟡 **25-50%**: Moderate/Half Kelly - **OPTIMAL ZONE** (recommended)
-    - 🟠 **50-75%**: Aggressive/Three-Quarter Kelly - Higher risk
-    - 🔴 **75-100%**: Very Aggressive/Full Kelly+ - Danger zone
+    - **0-25%**: Conservative/Quarter Kelly - Safe, lower growth
+    - **25-50%**: Moderate/Half Kelly - **OPTIMAL ZONE** (recommended)
+    - **50-75%**: Aggressive/Three-Quarter Kelly - Higher risk
+    - **75-100%**: Very Aggressive/Full Kelly+ - Danger zone
     """)
     
     # Recommendation
-    st.subheader("💡 Recommendation")
+    st.subheader("Recommendation")
     st.success(results['recommendation'])
     
     # Detailed breakdown
