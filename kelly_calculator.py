@@ -109,7 +109,7 @@ class KellyCalculator:
         self,
         confidence: float,
         atr_pct: float,
-        base: float = None
+        base: Optional[float] = None
     ) -> float:
         """
         Calculate adaptive Kelly sizing based on confidence and volatility
@@ -170,10 +170,11 @@ class KellyCalculator:
             tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
             
             # ATR = moving average of True Range
-            atr = tr.rolling(window=period).mean().iloc[-1]
+            atr_series = tr.rolling(window=period).mean()
+            atr = float(atr_series.iloc[-1]) if len(atr_series) > 0 else 0.05
             
             # ATR as percentage of close
-            current_close = close.iloc[-1]
+            current_close = float(close.iloc[-1]) if len(close) > 0 else 1.0
             atr_pct = atr / current_close if current_close > 0 else 0.05
             
             return atr_pct

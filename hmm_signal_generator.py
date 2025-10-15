@@ -222,7 +222,45 @@ class HMMSignalGenerator:
         
         return (same_transitions / total_regime_days * 100) if total_regime_days > 0 else 0.0
     
-    def generate_signal(self, current_regime, confidence, regime_stats, data=None):
+    def detect_regime_transition(self, states, current_probs):
+        """
+        Detect if regime is in transition, uncertain, or stable
+        
+        Args:
+            states: Array of regime states over time
+            current_probs: Current regime probabilities
+            
+        Returns:
+            Tuple of (status_string, risk_multiplier)
+            status: 'STABLE' | 'UNCERTAIN' | 'TRANSITIONING'
+            risk_multiplier: 1.0 (stable) | 0.75 (uncertain) | 0.5 (transitioning)
+        """
+        lookback = min(10, len(states))
+        
+        if lookback < 5:
+            return 'STABLE', 1.0  # Not enough history, assume stable
+        
+        recent_states = states[-lookback:]
+        
+        # Count regime changes in recent history
+        regime_changes = 0
+        for i in range(1, len(recent_states)):
+            if recent_states[i] != recent_states[i-1]:
+                regime_changes += 1
+        
+        # Check probability spread (how confident are we?)
+        max_prob = max(current_probs)
+        prob_spread = max_prob - min(current_probs)
+        
+        # Determine status
+        if regime_changes >= 3:  # 3+ changes in last 5-10 periods
+            return 'TRANSITIONING', 0.5
+        elif regime_changes >= 2 or prob_spread < 0.3:  # 2 changes or low confidence spread
+            return 'UNCERTAIN', 0.75
+        else:
+            return 'STABLE', 1.0
+    
+    def generate_signal(self, current_regime, confidence, regime_stats, data=None, regime_status='STABLE'):
         """Generate trading signal with optional candlestick pattern enhancement"""
         regime_name = self.regime_names[current_regime]
         
@@ -247,6 +285,7 @@ class HMMSignalGenerator:
             'regime': regime_name,
             'confidence': confidence * 100,
             'regime_stats': regime_stats.get(current_regime, {}),
+            'regime_status': regime_status,
             'pattern_signal': None,
             'combined_signal': None,
             'pattern_summary': None
