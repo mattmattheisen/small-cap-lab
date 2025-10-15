@@ -253,9 +253,9 @@ class HMMSignalGenerator:
         prob_spread = max_prob - min(current_probs)
         
         # Determine status
-        if regime_changes >= 3:  # 3+ changes in last 5-10 periods
+        if regime_changes > 3:  # More than 3 changes in last 5-10 periods
             return 'TRANSITIONING', 0.5
-        elif regime_changes >= 2 or prob_spread < 0.3:  # 2 changes or low confidence spread
+        elif prob_spread < 0.2:  # Low confidence spread (probability spread < 0.2)
             return 'UNCERTAIN', 0.75
         else:
             return 'STABLE', 1.0
