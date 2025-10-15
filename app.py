@@ -14,6 +14,14 @@ from hmm_signal_generator import HMMSignalGenerator
 from kelly_calculator import KellyCalculator
 from small_cap_screener import SmallCapScreener
 from utils import format_percentage, format_number, validate_date_range, get_stock_data_cached, clear_stock_data_cache, format_currency
+from excel_styles import (
+    get_excel_styles, 
+    create_excel_metric_table, 
+    create_excel_table, 
+    create_excel_alert, 
+    create_excel_section_header,
+    get_conditional_class
+)
 
 # Page configuration
 st.set_page_config(
@@ -24,20 +32,23 @@ st.set_page_config(
 )
 
 def main():
+    # Inject Excel-style CSS
+    st.markdown(get_excel_styles(), unsafe_allow_html=True)
+    
     # Header
     st.title("Advanced Trading Platform")
     st.markdown("**Hidden Markov Model Regime Detection + Kelly Criterion Position Sizing**")
     
     # Sidebar - User Manual Download and Global Refresh
     with st.sidebar:
-        st.markdown("### 📖 User Manual")
+        st.markdown("### User Manual")
         
         try:
             with open("USER_MANUAL.md", "r") as f:
                 manual_content = f.read()
             
             st.download_button(
-                label="📥 Download User Manual",
+                label="Download User Manual",
                 data=manual_content,
                 file_name="Trading_Platform_User_Manual.md",
                 mime="text/markdown",
@@ -48,13 +59,13 @@ def main():
         
         st.markdown("---")
         
-        st.markdown("### 🔄 Data Refresh")
-        if st.button("🔄 Refresh All Data", help="Clear all cached data and rotate screener universe"):
+        st.markdown("### Data Refresh")
+        if st.button("Refresh All Data", help="Clear all cached data and rotate screener universe"):
             clear_stock_data_cache()
             # Reinitialize screener to rotate stock universe
             if 'small_cap_screener' in st.session_state:
                 del st.session_state.small_cap_screener
-            st.toast("✅ All data cache cleared! Screener universe rotated!", icon="✅")
+            st.toast("All data cache cleared! Screener universe rotated!", icon="✅")
             st.rerun()
         
         st.markdown("---")
@@ -68,7 +79,7 @@ def main():
         st.session_state.small_cap_screener = SmallCapScreener()
     
     # Create tabs
-    tab1, tab2, tab3, tab4 = st.tabs(["HMM Trading Signals", "💰 Kelly Position Sizing", "🔬 Combined Analytics", "🔍 Small Cap Screener"])
+    tab1, tab2, tab3, tab4 = st.tabs(["HMM Trading Signals", "Kelly Position Sizing", "Combined Analytics", "Small Cap Screener"])
     
     with tab1:
         hmm_trading_signals()
@@ -90,7 +101,7 @@ def hmm_trading_signals():
     
     # Sidebar inputs for HMM
     with st.sidebar:
-        st.subheader("📊 HMM Analysis Settings")
+        st.markdown(create_excel_section_header("HMM Analysis Settings"), unsafe_allow_html=True)
         
         symbol = st.text_input(
             "Stock Symbol:",
@@ -118,13 +129,13 @@ def hmm_trading_signals():
     # Refresh and analysis buttons
     col1, col2 = st.columns([3, 1])
     with col1:
-        analyze_button = st.button("🚀 Generate HMM Signal", type="primary", key="hmm_analyze")
+        analyze_button = st.button("Generate HMM Signal", type="primary", key="hmm_analyze")
     with col2:
-        refresh_hmm = st.button("🔄 Refresh", key="hmm_refresh", help="Clear cached data for fresh fetch")
+        refresh_hmm = st.button("Refresh", key="hmm_refresh", help="Clear cached data for fresh fetch")
     
     if refresh_hmm:
         clear_stock_data_cache()
-        st.toast("✅ HMM data cache cleared!", icon="✅")
+        st.toast("HMM data cache cleared!")
         st.rerun()
     
     if analyze_button:
@@ -137,11 +148,11 @@ def hmm_trading_signals():
                 data = get_stock_data_cached(symbol, start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d'))
                 
                 if data is None or data.empty:
-                    st.error(f"❌ No data available for {symbol}")
+                    st.error(f"No data available for {symbol}")
                     return
                 
                 if data is None or len(data) < 100:
-                    st.error(f"❌ Insufficient data for {symbol}. Need at least 100 days.")
+                    st.error(f"Insufficient data for {symbol}. Need at least 100 days.")
                     return
                 
                 # Store data in session state for combined analytics
@@ -195,118 +206,120 @@ def display_hmm_results(signal_info, regime_stats, data, states, features):
     has_patterns = signal_info.get('combined_signal') is not None
     
     if has_patterns:
-        # Display combined signal prominently
+        # Display combined signal prominently - Excel style
         combined = signal_info['combined_signal']
         action = combined['action']
         combined_strength = combined['strength']
         
-        # Enhanced signal box
-        if 'STRONG_BUY' in action:
-            st.success(f"🟢 **{action}** - Strength: {combined_strength}/10")
-        elif 'STRONG_SELL' in action:
-            st.error(f"🔴 **{action}** - Strength: {combined_strength}/10")
-        elif 'WEAK_BUY' in action:
-            st.info(f"🔵 **{action}** - Strength: {combined_strength}/10")
-        elif 'WEAK_SELL' in action:
-            st.warning(f"🟠 **{action}** - Strength: {combined_strength}/10")
+        # Determine alert type based on action
+        if 'STRONG_BUY' in action or 'WEAK_BUY' in action:
+            alert_type = "success"
+        elif 'STRONG_SELL' in action or 'WEAK_SELL' in action:
+            alert_type = "error"
         else:
-            st.warning(f"🟡 **{action}** - Strength: {combined_strength}/10")
+            alert_type = "warning"
         
-        # Show reasoning
+        st.markdown(create_excel_alert(
+            f"<strong>{action}</strong> - Signal Strength: {combined_strength}/10", 
+            alert_type
+        ), unsafe_allow_html=True)
+        
+        # Show reasoning in Excel table
         if combined.get('reasoning'):
-            for reason in combined['reasoning']:
-                st.info(f"💡 {reason}")
+            reasoning_rows = [[reason] for reason in combined['reasoning']]
+            st.markdown(create_excel_table(['Signal Reasoning'], reasoning_rows), unsafe_allow_html=True)
     
     else:
-        # Original HMM-only signal display
+        # Original HMM-only signal display - Excel style
         signal = signal_info['signal']
         strength = signal_info['strength']
         
         if signal == 'BUY':
-            st.success(f"🟢 **{signal}** Signal - Strength: {strength}/10")
+            alert_type = "success"
         elif signal == 'SELL':
-            st.error(f"🔴 **{signal}** Signal - Strength: {strength}/10")
+            alert_type = "error"
         else:
-            st.warning(f"🟡 **{signal}** Signal - Strength: {strength}/10")
+            alert_type = "warning"
+        
+        st.markdown(create_excel_alert(
+            f"<strong>{signal}</strong> Signal - Strength: {strength}/10", 
+            alert_type
+        ), unsafe_allow_html=True)
     
-    # Pattern Information Section
+    # Pattern Information Section - Excel Style
     if has_patterns:
         pattern_signal = signal_info.get('pattern_signal', {})
         pattern_summary = signal_info.get('pattern_summary', {})
         
-        st.subheader("📊 Candlestick Pattern Analysis")
+        st.markdown(create_excel_section_header("Candlestick Pattern Analysis"), unsafe_allow_html=True)
         
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
             pattern_text = pattern_signal.get('tag', 'None')
             pattern_dir = pattern_signal.get('dir', 0)
-            if pattern_dir == 1:
-                st.metric("Current Pattern", f"🟢 {pattern_text}")
-            elif pattern_dir == -1:
-                st.metric("Current Pattern", f"🔴 {pattern_text}")
-            else:
-                st.metric("Current Pattern", "No Pattern")
+            is_positive = True if pattern_dir == 1 else (False if pattern_dir == -1 else None)
+            st.markdown(create_excel_metric_table(
+                "Current Pattern", 
+                pattern_text if pattern_text != 'None' else "No Pattern",
+                is_positive
+            ), unsafe_allow_html=True)
         
         with col2:
             total_patterns = pattern_summary.get('total_patterns', 0)
-            st.metric("Patterns (30d)", total_patterns)
+            st.markdown(create_excel_metric_table("Patterns (30d)", str(total_patterns)), unsafe_allow_html=True)
         
         with col3:
             bullish_count = pattern_summary.get('bullish_count', 0)
-            st.metric("Bullish Patterns", bullish_count)
+            st.markdown(create_excel_metric_table("Bullish Patterns", str(bullish_count), True), unsafe_allow_html=True)
         
         with col4:
             bearish_count = pattern_summary.get('bearish_count', 0)
-            st.metric("Bearish Patterns", bearish_count)
+            st.markdown(create_excel_metric_table("Bearish Patterns", str(bearish_count), False), unsafe_allow_html=True)
         
         # Recent patterns
         if pattern_summary.get('recent_patterns'):
-            with st.expander("📋 Recent Pattern History (Last 30 Days)"):
+            with st.expander("Recent Pattern History (Last 30 Days)"):
                 recent_df = pd.DataFrame(pattern_summary['recent_patterns'])
                 if not recent_df.empty:
                     recent_df['date'] = pd.to_datetime(recent_df['date']).dt.strftime('%Y-%m-%d')
                     st.dataframe(recent_df[['date', 'pattern', 'direction']], use_container_width=True)
     
-    # Component Analysis
+    # Component Analysis - Excel Style
     regime = signal_info['regime']
     confidence = signal_info['confidence']
     
-    st.subheader("🔬 Signal Components")
+    st.markdown(create_excel_section_header("Signal Components"), unsafe_allow_html=True)
     
-    col1, col2, col3 = st.columns(3)
-    
-    # Current regime info
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.metric("Current Regime", f"{regime} {st.session_state.hmm_generator.regime_icons.get(list(st.session_state.hmm_generator.regime_names.keys())[list(st.session_state.hmm_generator.regime_names.values()).index(regime)], '')}")
+        # Remove emoji from regime display
+        st.markdown(create_excel_metric_table("Current Regime", regime), unsafe_allow_html=True)
     
     with col2:
-        st.metric("Confidence", f"{confidence:.1f}%")
+        st.markdown(create_excel_metric_table("Confidence", f"{confidence:.1f}%"), unsafe_allow_html=True)
     
     with col3:
-        # Display regime status with appropriate color
+        # Display regime status with conditional formatting
         regime_status = signal_info.get('regime_status', 'STABLE')
-        if regime_status == 'STABLE':
-            st.metric("Regime Status", f"🟢 {regime_status}")
-        elif regime_status == 'UNCERTAIN':
-            st.metric("Regime Status", f"🟡 {regime_status}")
-        else:  # TRANSITIONING
-            st.metric("Regime Status", f"🔴 {regime_status}")
+        is_positive = True if regime_status == 'STABLE' else (None if regime_status == 'UNCERTAIN' else False)
+        st.markdown(create_excel_metric_table("Regime Status", regime_status, is_positive), unsafe_allow_html=True)
     
     with col4:
         if has_patterns and signal_info.get('combined_signal'):
-            st.metric("Combined Strength", f"{signal_info['combined_signal']['strength']}/10")
+            strength_val = signal_info['combined_signal']['strength']
+            st.markdown(create_excel_metric_table("Combined Strength", f"{strength_val}/10"), unsafe_allow_html=True)
         else:
-            st.metric("Signal Strength", f"{signal_info['strength']}/10")
+            strength_val = signal_info['strength']
+            st.markdown(create_excel_metric_table("Signal Strength", f"{strength_val}/10"), unsafe_allow_html=True)
     
-    # Regime Statistics
-    st.subheader("📊 Regime Analysis")
+    # Regime Statistics - Excel Style (remove emojis)
+    st.markdown(create_excel_section_header("Regime Analysis"), unsafe_allow_html=True)
     
     regime_df = pd.DataFrame([
         {
-            'Regime': f"{stats['icon']} {stats['name']}",
+            'Regime': stats['name'],  # No emoji icon
             'Days': stats['days'],
             'Percentage': f"{stats['percentage']:.1f}%",
             'Avg Return': f"{stats['avg_return']:.2f}%",
@@ -316,10 +329,10 @@ def display_hmm_results(signal_info, regime_stats, data, states, features):
         for stats in regime_stats.values()
     ])
     
-    st.dataframe(regime_df, use_container_width=True)
+    st.dataframe(regime_df, use_container_width=True, hide_index=True)
     
-    # Price chart with regime overlay
-    st.subheader("📈 Price History with Regime Detection")
+    # Price chart with regime overlay - Excel Style header
+    st.markdown(create_excel_section_header("Price History with Regime Detection"), unsafe_allow_html=True)
     
     fig = go.Figure()
     
@@ -355,9 +368,12 @@ def display_hmm_results(signal_info, regime_stats, data, states, features):
     
     st.plotly_chart(fig, use_container_width=True)
     
-    # Kelly Criterion Summary Card
-    st.subheader("💰 Kelly Position Sizing Summary")
-    st.info("Quick Kelly calculation based on HMM regime analysis. Visit the Kelly Position Sizing tab for detailed analysis.")
+    # Kelly Criterion Summary Card - Excel Style
+    st.markdown(create_excel_section_header("Kelly Position Sizing Summary"), unsafe_allow_html=True)
+    st.markdown(create_excel_alert(
+        "Quick Kelly calculation based on HMM regime analysis. Visit the Kelly Position Sizing tab for detailed analysis.",
+        "info"
+    ), unsafe_allow_html=True)
     
     try:
         kelly = st.session_state.kelly_calculator
@@ -378,41 +394,73 @@ def display_hmm_results(signal_info, regime_stats, data, states, features):
         col1, col2, col3, col4, col5 = st.columns(5)
         
         with col1:
-            st.metric("Win Probability", f"{quick_kelly['win_probability']*100:.1f}%")
+            st.markdown(create_excel_metric_table(
+                "Win Probability", 
+                f"{quick_kelly['win_probability']*100:.1f}%"
+            ), unsafe_allow_html=True)
         
         with col2:
-            st.metric("Full Kelly", f"{quick_kelly['kelly_fraction']*100:.1f}%")
+            st.markdown(create_excel_metric_table(
+                "Full Kelly", 
+                f"{quick_kelly['kelly_fraction']*100:.1f}%"
+            ), unsafe_allow_html=True)
         
         with col3:
-            st.metric("Half Kelly", f"{quick_kelly['kelly_fraction']*50:.1f}%")
+            st.markdown(create_excel_metric_table(
+                "Half Kelly", 
+                f"{quick_kelly['kelly_fraction']*50:.1f}%"
+            ), unsafe_allow_html=True)
         
         with col4:
-            # Display net edge
+            # Display net edge with conditional formatting
             net_edge = quick_kelly.get('edge_analysis', {}).get('net_edge', 0)
-            st.metric("Net Edge", f"{net_edge*100:.2f}%")
+            is_positive = True if net_edge > 0 else False
+            st.markdown(create_excel_metric_table(
+                "Net Edge", 
+                f"{net_edge*100:.2f}%",
+                is_positive
+            ), unsafe_allow_html=True)
         
         with col5:
-            risk_emoji = quick_kelly['risk_level']['emoji']
+            # Remove emoji from risk level
             risk_level = quick_kelly['risk_level']['level']
-            st.metric("Risk Level", f"{risk_emoji} {risk_level}")
+            st.markdown(create_excel_metric_table(
+                "Risk Level", 
+                risk_level
+            ), unsafe_allow_html=True)
         
-        # Additional cost metrics
+        # Additional cost metrics - Excel Style
         if 'transaction_costs' in quick_kelly and 'edge_analysis' in quick_kelly:
             col1, col2, col3 = st.columns(3)
             with col1:
                 tx_cost = quick_kelly['transaction_costs']['total_round_trip_pct'] * 100
-                st.metric("Transaction Cost", f"{tx_cost:.2f}%")
+                st.markdown(create_excel_metric_table(
+                    "Transaction Cost", 
+                    f"{tx_cost:.2f}%",
+                    False  # Red for costs
+                ), unsafe_allow_html=True)
             with col2:
                 gross_edge = quick_kelly['edge_analysis']['gross_edge'] * 100
-                st.metric("Gross Edge", f"{gross_edge:.2f}%")
+                st.markdown(create_excel_metric_table(
+                    "Gross Edge", 
+                    f"{gross_edge:.2f}%",
+                    True if gross_edge > 0 else False
+                ), unsafe_allow_html=True)
             with col3:
                 atr = quick_kelly.get('atr_pct', 0) * 100
-                st.metric("ATR (14-day)", f"{atr:.2f}%")
+                st.markdown(create_excel_metric_table(
+                    "ATR (14-day)", 
+                    f"{atr:.2f}%"
+                ), unsafe_allow_html=True)
         
-        st.caption("💡 Based on $100k portfolio with 5% stop loss and Half Kelly (0.5x). Includes transaction costs and edge decay. Customize in Kelly Position Sizing tab →")
+        # Info note - Excel style
+        st.markdown(create_excel_alert(
+            "Based on $100k portfolio with 5% stop loss and Half Kelly (0.5x). Includes transaction costs and edge decay. Customize in Kelly Position Sizing tab →",
+            "info"
+        ), unsafe_allow_html=True)
         
     except Exception as e:
-        st.warning(f"Kelly summary unavailable: {str(e)}")
+        st.markdown(create_excel_alert(f"Kelly summary unavailable: {str(e)}", "warning"), unsafe_allow_html=True)
 
 def create_kelly_gauge(applied_kelly_pct, full_kelly_pct=None):
     """Create speedometer gauge for Kelly percentage"""
@@ -451,7 +499,7 @@ def create_kelly_gauge(applied_kelly_pct, full_kelly_pct=None):
 
 def kelly_position_sizing():
     """Kelly Criterion Position Sizing Tab"""
-    st.header("💰 Kelly Criterion Position Sizing")
+    st.header("Kelly Criterion Position Sizing")
     
     st.info("Calculate optimal position sizes using the Kelly Criterion. Integrates with HMM regime detection or use manual inputs.")
     
@@ -476,7 +524,7 @@ def kelly_position_sizing():
 
 def kelly_from_hmm():
     """Kelly calculation from HMM results"""
-    st.subheader("📊 HMM-Based Kelly Calculation")
+    st.subheader("HMM-Based Kelly Calculation")
     
     hmm_results = st.session_state.hmm_results
     regime_stats = hmm_results['regime_stats']
@@ -515,7 +563,7 @@ def kelly_from_hmm():
             format="%.1f%%"
         ) / 100
     
-    if st.button("💰 Calculate Kelly Position Size", type="primary"):
+    if st.button("Calculate Kelly Position Size", type="primary"):
         try:
             kelly = st.session_state.kelly_calculator
             price_data = hmm_results.get('data')
@@ -599,7 +647,7 @@ def kelly_manual_input():
             format="%.1f%%"
         ) / 100
     
-    if st.button("💰 Calculate Kelly Position Size", type="primary", key="kelly_manual"):
+    if st.button("Calculate Kelly Position Size", type="primary", key="kelly_manual"):
         try:
             kelly = st.session_state.kelly_calculator
             
@@ -619,7 +667,7 @@ def kelly_manual_input():
 
 def display_kelly_results(results):
     """Display Kelly calculation results"""
-    st.subheader("📊 Kelly Position Sizing Results")
+    st.subheader("Kelly Position Sizing Results")
     
     position_info = results['position_info']
     risk_level = results['risk_level']
@@ -675,7 +723,7 @@ def display_kelly_results(results):
             st.metric(
                 "Net Edge", 
                 f"{net_edge:.2f}%",
-                delta="✅ Tradeable" if tradeable else "❌ Skip",
+                delta="Tradeable" if tradeable else "❌ Skip",
                 help="Edge after transaction costs and decay"
             )
         
@@ -689,12 +737,12 @@ def display_kelly_results(results):
             mult = results['regime_multiplier']
             if mult < 1.0:
                 if mult == 0.5:
-                    st.warning(f"⚠️ Regime Transitioning - Position reduced to {mult*100:.0f}%")
+                    st.warning(f"Regime Transitioning - Position reduced to {mult*100:.0f}%")
                 else:
-                    st.info(f"📊 Regime Uncertain - Position reduced to {mult*100:.0f}%")
+                    st.info(f"Regime Uncertain - Position reduced to {mult*100:.0f}%")
     
     # Speedometer Gauge
-    st.subheader("📊 Risk Level Gauge")
+    st.subheader("Risk Level Gauge")
     
     gauge_fig = create_kelly_gauge(
         position_info['applied_kelly'] * 100,
@@ -720,7 +768,7 @@ def display_kelly_results(results):
     st.success(results['recommendation'])
     
     # Detailed breakdown
-    with st.expander("📋 Detailed Calculation Breakdown"):
+    with st.expander("Detailed Calculation Breakdown"):
         st.markdown(f"""
         **Position Sizing Details:**
         - Portfolio Value: {format_currency(position_info['portfolio_value'])}
@@ -755,7 +803,7 @@ def display_kelly_results(results):
 
 def combined_analytics():
     """Combined Analytics Tab"""
-    st.header("🔬 Combined HMM & Kelly Analytics")
+    st.header("Combined HMM & Kelly Analytics")
     
     if 'hmm_results' not in st.session_state:
         st.warning("Please run HMM Trading Signals first to see combined analytics.")
@@ -810,7 +858,7 @@ def combined_analytics():
         st.error(f"Error calculating Kelly metrics: {str(e)}")
     
     # Regime-specific performance analysis
-    st.subheader("📊 Regime-Specific Risk Analysis")
+    st.subheader("Regime-Specific Risk Analysis")
     
     # Display regime stats with Kelly implications
     try:
@@ -819,7 +867,7 @@ def combined_analytics():
         st.warning(f"Unable to display regime metrics: {str(e)}")
     
     # Combined visualization
-    st.subheader("📈 Integrated Analysis Dashboard")
+    st.subheader("Integrated Analysis Dashboard")
     
     # Create combined chart
     fig = go.Figure()
@@ -899,7 +947,7 @@ def analyze_regime_performance(hmm_results):
 
 def small_cap_screener():
     """Small Cap Stock Screener Tab"""
-    st.header("🔍 Small Cap Stock Screener")
+    st.header("Small Cap Stock Screener")
     
     st.info("Advanced fundamental analysis to find high-quality small cap opportunities with consistent growth, strong financials, and reasonable valuations.")
     
@@ -907,7 +955,7 @@ def small_cap_screener():
     
     # Sidebar for screening criteria
     with st.sidebar:
-        st.subheader("🎯 Screening Criteria")
+        st.subheader("Screening Criteria")
         
         # Market cap range
         st.markdown("**Market Cap Range**")
@@ -1000,7 +1048,7 @@ def small_cap_screener():
     }
     
     # Display current criteria
-    st.subheader("📋 Current Screening Criteria")
+    st.subheader("Current Screening Criteria")
     
     col1, col2, col3, col4 = st.columns(4)
     
@@ -1024,13 +1072,13 @@ def small_cap_screener():
     col_btn1, col_btn2 = st.columns([3, 1])
     
     with col_btn1:
-        run_screen = st.button("🚀 Run Small Cap Screen", type="primary", key="run_screener")
+        run_screen = st.button("Run Small Cap Screen", type="primary", key="run_screener")
     
     with col_btn2:
-        if st.button("🔄 Rotate Stocks", help="Pick new stocks to screen from universe"):
+        if st.button("Rotate Stocks", help="Pick new stocks to screen from universe"):
             # Reinitialize screener with new random selection
             st.session_state.small_cap_screener = SmallCapScreener()
-            st.toast("✅ Stock universe rotated!", icon="🔄")
+            st.toast("Stock universe rotated!")
             st.rerun()
     
     if run_screen:
@@ -1046,7 +1094,7 @@ def small_cap_screener():
                     # Format and display results
                     results_df = screener.format_screening_results(results)
                     
-                    st.subheader("📊 Screening Results")
+                    st.subheader("Screening Results")
                     st.dataframe(results_df, use_container_width=True)
                     
                     # Top picks
@@ -1077,11 +1125,11 @@ def small_cap_screener():
     
     # Display previous results if available
     if 'screening_results' in st.session_state and st.session_state.screening_results:
-        if st.button("🔄 Show Last Results"):
+        if st.button("Show Last Results"):
             results = st.session_state.screening_results
             results_df = screener.format_screening_results(results)
             
-            st.subheader("📊 Previous Screening Results")
+            st.subheader("Previous Screening Results")
             st.dataframe(results_df, use_container_width=True)
             
             # Add CSV export for previous results
@@ -1127,16 +1175,16 @@ def display_stock_details(stock):
     insights = []
     
     if stock['peg_ratio'] and 0 < stock['peg_ratio'] <= 1:
-        insights.append("🎯 Excellent PEG ratio suggests undervalued growth")
+        insights.append("Excellent PEG ratio suggests undervalued growth")
     
     if stock['revenue_growth'] and stock['revenue_growth'] >= 0.15:
-        insights.append("📈 Strong revenue growth momentum")
+        insights.append("Strong revenue growth momentum")
     
     if stock['debt_to_equity'] and stock['debt_to_equity'] <= 0.3:
         insights.append("💪 Conservative debt levels")
     
     if stock['profit_margin'] and stock['profit_margin'] >= 0.1:
-        insights.append("💰 Strong profitability margins")
+        insights.append("Strong profitability margins")
     
     if stock['free_cash_flow'] and stock['free_cash_flow'] > 0:
         insights.append("💵 Positive free cash flow generation")
@@ -1145,7 +1193,7 @@ def display_stock_details(stock):
         for insight in insights:
             st.write(insight)
     else:
-        st.write("🔍 Review detailed metrics for investment considerations")
+        st.write("Review detailed metrics for investment considerations")
 
 if __name__ == "__main__":
     main()
