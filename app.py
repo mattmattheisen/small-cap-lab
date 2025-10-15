@@ -831,7 +831,7 @@ def combined_analytics():
             regime_multiplier
         )
         
-        # Combined metrics
+        # Combined metrics with Excel styling
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
@@ -840,17 +840,18 @@ def combined_analytics():
                 action = signal['action']
             else:
                 action = hmm_results['signal_info']['signal']
-            st.metric("Current Signal", action, f"Strength: {hmm_results['signal_info']['strength']}/10")
+            strength = hmm_results['signal_info']['strength']
+            st.markdown(create_metric_table("Current Signal", f"{action} ({strength}/10)"), unsafe_allow_html=True)
         
         with col2:
-            st.metric("Kelly Fraction", f"{kelly_results['kelly_fraction']*100:.1f}%", "Optimal sizing")
+            st.markdown(create_metric_table("Kelly Fraction", f"{kelly_results['kelly_fraction']*100:.1f}%"), unsafe_allow_html=True)
         
         with col3:
-            st.metric("Win Probability", f"{kelly_results['win_probability']*100:.1f}%", "From HMM regimes")
+            st.markdown(create_metric_table("Win Probability", f"{kelly_results['win_probability']*100:.1f}%"), unsafe_allow_html=True)
         
         with col4:
             risk_level = kelly_results['risk_level']
-            st.metric("Risk Level", f"{risk_level['emoji']} {risk_level['level']}")
+            st.markdown(create_metric_table("Risk Level", risk_level['level']), unsafe_allow_html=True)
     
     except Exception as e:
         st.error(f"Error calculating Kelly metrics: {str(e)}")
@@ -911,7 +912,7 @@ def combined_analytics():
     st.plotly_chart(fig, use_container_width=True)
 
 def analyze_regime_performance(hmm_results):
-    """Analyze performance by regime"""
+    """Analyze performance by regime with Excel styling"""
     
     # Get regime statistics
     regime_stats = hmm_results['regime_stats']
@@ -920,26 +921,26 @@ def analyze_regime_performance(hmm_results):
     st.markdown("**Regime Performance Summary:**")
     
     for regime_id, stats in regime_stats.items():
-        with st.expander(f"{stats['icon']} {stats['name']} Regime Analysis"):
+        with st.expander(f"{stats['name']} Regime Analysis"):
             col1, col2, col3 = st.columns(3)
             
             with col1:
-                st.metric("Days in Regime", stats['days'])
-                st.metric("Persistence", f"{stats['persistence']:.1f}%")
+                st.markdown(create_metric_table("Days in Regime", str(stats['days'])), unsafe_allow_html=True)
+                st.markdown(create_metric_table("Persistence", f"{stats['persistence']:.1f}%"), unsafe_allow_html=True)
             
             with col2:
-                st.metric("Average Return", f"{stats['avg_return']:.2f}%")
-                st.metric("Volatility", f"{stats['volatility']:.2f}%")
+                st.markdown(create_metric_table("Average Return", f"{stats['avg_return']:.2f}%"), unsafe_allow_html=True)
+                st.markdown(create_metric_table("Volatility", f"{stats['volatility']:.2f}%"), unsafe_allow_html=True)
             
             with col3:
                 # Calculate regime-specific risk metrics
                 if stats['volatility'] > 0:
                     regime_sharpe = stats['avg_return'] / stats['volatility']
-                    st.metric("Regime Sharpe*", f"{regime_sharpe:.2f}")
+                    st.markdown(create_metric_table("Regime Sharpe*", f"{regime_sharpe:.2f}"), unsafe_allow_html=True)
                 else:
-                    st.metric("Regime Sharpe*", "N/A")
+                    st.markdown(create_metric_table("Regime Sharpe*", "N/A"), unsafe_allow_html=True)
                 
-                st.metric("Market Share", f"{stats['percentage']:.1f}%")
+                st.markdown(create_metric_table("Market Share", f"{stats['percentage']:.1f}%"), unsafe_allow_html=True)
     
     st.caption("*Regime Sharpe = Average Return / Volatility (simplified calculation)")
 
