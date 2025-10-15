@@ -187,7 +187,7 @@ def get_excel_styles():
     </style>
     """
 
-def create_excel_metric_table(label: str, value: str, is_positive: bool = None) -> str:
+def create_excel_metric_table(label: str, value: str, is_positive: bool | None = None) -> str:
     """Create a 2-column Excel-style metric table"""
     cell_class = ""
     if is_positive is True:

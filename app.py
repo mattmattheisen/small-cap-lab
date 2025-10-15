@@ -676,25 +676,25 @@ def display_kelly_results(results):
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.markdown(create_metric_table(
+        st.markdown(create_excel_metric_table(
             "Full Kelly %",
             f"{position_info['full_kelly_fraction']*100:.1f}%"
         ), unsafe_allow_html=True)
     
     with col2:
-        st.markdown(create_metric_table(
+        st.markdown(create_excel_metric_table(
             "Applied Kelly %",
             f"{position_info['applied_kelly']*100:.1f}%"
         ), unsafe_allow_html=True)
     
     with col3:
-        st.markdown(create_metric_table(
+        st.markdown(create_excel_metric_table(
             "Position Size",
             format_currency(position_info['position_size'])
         ), unsafe_allow_html=True)
     
     with col4:
-        st.markdown(create_metric_table(
+        st.markdown(create_excel_metric_table(
             "Risk Budget",
             format_currency(position_info['risk_budget'])
         ), unsafe_allow_html=True)
@@ -707,28 +707,28 @@ def display_kelly_results(results):
         
         with col1:
             tx_cost = results['transaction_costs']['total_round_trip_pct'] * 100
-            st.markdown(create_metric_table("Transaction Cost", f"{tx_cost:.2f}%"), unsafe_allow_html=True)
+            st.markdown(create_excel_metric_table("Transaction Cost", f"{tx_cost:.2f}%"), unsafe_allow_html=True)
         
         with col2:
             gross_edge = results['edge_analysis']['gross_edge'] * 100
-            st.markdown(create_metric_table("Gross Edge", f"{gross_edge:.2f}%"), unsafe_allow_html=True)
+            st.markdown(create_excel_metric_table("Gross Edge", f"{gross_edge:.2f}%"), unsafe_allow_html=True)
         
         with col3:
             net_edge = results['edge_analysis']['net_edge'] * 100
             tradeable = results['edge_analysis']['tradeable']
             net_edge_text = f"{net_edge:.2f}%"
             if tradeable:
-                bg_color = EXCEL_COLORS['success_bg']
+                is_positive = True
                 text = f"{net_edge_text} ✓"
             else:
-                bg_color = EXCEL_COLORS['danger_bg']
+                is_positive = False
                 text = f"{net_edge_text} ✗"
-            st.markdown(create_metric_table("Net Edge", text, bg_color=bg_color), unsafe_allow_html=True)
+            st.markdown(create_excel_metric_table("Net Edge", text, is_positive=is_positive), unsafe_allow_html=True)
         
         with col4:
             if 'atr_pct' in results:
                 atr = results['atr_pct'] * 100
-                st.markdown(create_metric_table("ATR (14-day)", f"{atr:.2f}%"), unsafe_allow_html=True)
+                st.markdown(create_excel_metric_table("ATR (14-day)", f"{atr:.2f}%"), unsafe_allow_html=True)
         
         # Show regime multiplier if available
         if 'regime_multiplier' in results:
@@ -841,17 +841,17 @@ def combined_analytics():
             else:
                 action = hmm_results['signal_info']['signal']
             strength = hmm_results['signal_info']['strength']
-            st.markdown(create_metric_table("Current Signal", f"{action} ({strength}/10)"), unsafe_allow_html=True)
+            st.markdown(create_excel_metric_table("Current Signal", f"{action} ({strength}/10)"), unsafe_allow_html=True)
         
         with col2:
-            st.markdown(create_metric_table("Kelly Fraction", f"{kelly_results['kelly_fraction']*100:.1f}%"), unsafe_allow_html=True)
+            st.markdown(create_excel_metric_table("Kelly Fraction", f"{kelly_results['kelly_fraction']*100:.1f}%"), unsafe_allow_html=True)
         
         with col3:
-            st.markdown(create_metric_table("Win Probability", f"{kelly_results['win_probability']*100:.1f}%"), unsafe_allow_html=True)
+            st.markdown(create_excel_metric_table("Win Probability", f"{kelly_results['win_probability']*100:.1f}%"), unsafe_allow_html=True)
         
         with col4:
             risk_level = kelly_results['risk_level']
-            st.markdown(create_metric_table("Risk Level", risk_level['level']), unsafe_allow_html=True)
+            st.markdown(create_excel_metric_table("Risk Level", risk_level['level']), unsafe_allow_html=True)
     
     except Exception as e:
         st.error(f"Error calculating Kelly metrics: {str(e)}")
@@ -925,22 +925,22 @@ def analyze_regime_performance(hmm_results):
             col1, col2, col3 = st.columns(3)
             
             with col1:
-                st.markdown(create_metric_table("Days in Regime", str(stats['days'])), unsafe_allow_html=True)
-                st.markdown(create_metric_table("Persistence", f"{stats['persistence']:.1f}%"), unsafe_allow_html=True)
+                st.markdown(create_excel_metric_table("Days in Regime", str(stats['days'])), unsafe_allow_html=True)
+                st.markdown(create_excel_metric_table("Persistence", f"{stats['persistence']:.1f}%"), unsafe_allow_html=True)
             
             with col2:
-                st.markdown(create_metric_table("Average Return", f"{stats['avg_return']:.2f}%"), unsafe_allow_html=True)
-                st.markdown(create_metric_table("Volatility", f"{stats['volatility']:.2f}%"), unsafe_allow_html=True)
+                st.markdown(create_excel_metric_table("Average Return", f"{stats['avg_return']:.2f}%"), unsafe_allow_html=True)
+                st.markdown(create_excel_metric_table("Volatility", f"{stats['volatility']:.2f}%"), unsafe_allow_html=True)
             
             with col3:
                 # Calculate regime-specific risk metrics
                 if stats['volatility'] > 0:
                     regime_sharpe = stats['avg_return'] / stats['volatility']
-                    st.markdown(create_metric_table("Regime Sharpe*", f"{regime_sharpe:.2f}"), unsafe_allow_html=True)
+                    st.markdown(create_excel_metric_table("Regime Sharpe*", f"{regime_sharpe:.2f}"), unsafe_allow_html=True)
                 else:
-                    st.markdown(create_metric_table("Regime Sharpe*", "N/A"), unsafe_allow_html=True)
+                    st.markdown(create_excel_metric_table("Regime Sharpe*", "N/A"), unsafe_allow_html=True)
                 
-                st.markdown(create_metric_table("Market Share", f"{stats['percentage']:.1f}%"), unsafe_allow_html=True)
+                st.markdown(create_excel_metric_table("Market Share", f"{stats['percentage']:.1f}%"), unsafe_allow_html=True)
     
     st.caption("*Regime Sharpe = Average Return / Volatility (simplified calculation)")
 
@@ -1046,26 +1046,26 @@ def small_cap_screener():
         'min_volume_usd': min_volume_usd,
     }
     
-    # Display current criteria
+    # Display current criteria with Excel styling
     st.subheader("Current Screening Criteria")
     
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.metric("Market Cap Range", f"${market_cap_min/1e6:.0f}M - ${market_cap_max/1e9:.1f}B")
-        st.metric("Revenue Growth", f"≥{revenue_growth_min*100:.0f}%")
+        st.markdown(create_excel_metric_table("Market Cap Range", f"${market_cap_min/1e6:.0f}M - ${market_cap_max/1e9:.1f}B"), unsafe_allow_html=True)
+        st.markdown(create_excel_metric_table("Revenue Growth", f"≥{revenue_growth_min*100:.0f}%"), unsafe_allow_html=True)
     
     with col2:
-        st.metric("EPS Growth", f"≥{eps_growth_min*100:.0f}%")
-        st.metric("Profit Margin", f"≥{profit_margin_min*100:.0f}%")
+        st.markdown(create_excel_metric_table("EPS Growth", f"≥{eps_growth_min*100:.0f}%"), unsafe_allow_html=True)
+        st.markdown(create_excel_metric_table("Profit Margin", f"≥{profit_margin_min*100:.0f}%"), unsafe_allow_html=True)
     
     with col3:
-        st.metric("Debt/Equity", f"≤{debt_equity_max*100:.0f}%")
-        st.metric("PEG Ratio", f"≤{peg_ratio_max:.1f}")
+        st.markdown(create_excel_metric_table("Debt/Equity", f"≤{debt_equity_max*100:.0f}%"), unsafe_allow_html=True)
+        st.markdown(create_excel_metric_table("PEG Ratio", f"≤{peg_ratio_max:.1f}"), unsafe_allow_html=True)
     
     with col4:
-        st.metric("Daily Volume", f"≥${min_volume_usd/1e6:.1f}M")
-        st.metric("Stocks to Screen", len(screener.small_cap_universe))
+        st.markdown(create_excel_metric_table("Daily Volume", f"≥${min_volume_usd/1e6:.1f}M"), unsafe_allow_html=True)
+        st.markdown(create_excel_metric_table("Stocks to Screen", str(len(screener.small_cap_universe))), unsafe_allow_html=True)
     
     # Run screening button with refresh option
     col_btn1, col_btn2 = st.columns([3, 1])
@@ -1098,14 +1098,14 @@ def small_cap_screener():
                     
                     # Top picks
                     if len(results) >= 3:
-                        st.subheader("🏆 Top 3 Picks")
+                        st.subheader("Top 3 Picks")
                         
                         for i, stock in enumerate(results[:3]):
                             with st.expander(f"#{i+1}: {stock['symbol']} - Score: {stock['screening_score']}/10"):
                                 display_stock_details(stock)
                     
                     # Export option
-                    st.subheader("💾 Export Results")
+                    st.subheader("Export Results")
                     # Use CSV export format with proper number formatting
                     csv_df = screener.format_csv_export(results)
                     csv = csv_df.to_csv(index=False)
@@ -1132,7 +1132,7 @@ def small_cap_screener():
             st.dataframe(results_df, use_container_width=True)
             
             # Add CSV export for previous results
-            st.subheader("💾 Export Previous Results")
+            st.subheader("Export Previous Results")
             csv_df = screener.format_csv_export(results)
             csv = csv_df.to_csv(index=False)
             st.download_button(
@@ -1180,13 +1180,13 @@ def display_stock_details(stock):
         insights.append("Strong revenue growth momentum")
     
     if stock['debt_to_equity'] and stock['debt_to_equity'] <= 0.3:
-        insights.append("💪 Conservative debt levels")
+        insights.append("Conservative debt levels")
     
     if stock['profit_margin'] and stock['profit_margin'] >= 0.1:
         insights.append("Strong profitability margins")
     
     if stock['free_cash_flow'] and stock['free_cash_flow'] > 0:
-        insights.append("💵 Positive free cash flow generation")
+        insights.append("Positive free cash flow generation")
     
     if insights:
         for insight in insights:
