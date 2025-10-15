@@ -164,8 +164,11 @@ def hmm_trading_signals():
                 # Analyze regimes
                 regime_stats = hmm.analyze_regimes(features, states, probabilities)
                 
+                # Detect regime transition
+                regime_status, regime_multiplier = hmm.detect_regime_transition(states, probabilities[-1])
+                
                 # Generate signal with candlestick pattern enhancement
-                signal_info = hmm.generate_signal(current_regime, current_confidence, regime_stats, data)
+                signal_info = hmm.generate_signal(current_regime, current_confidence, regime_stats, data, regime_status)
                 
                 # Store results in session state
                 st.session_state.hmm_results = {
@@ -174,7 +177,9 @@ def hmm_trading_signals():
                     'states': states,
                     'probabilities': probabilities,
                     'features': features,
-                    'data': data
+                    'data': data,
+                    'regime_status': regime_status,
+                    'regime_multiplier': regime_multiplier
                 }
                 
                 # Display results
@@ -272,7 +277,7 @@ def display_hmm_results(signal_info, regime_stats, data, states, features):
     col1, col2, col3 = st.columns(3)
     
     # Current regime info
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     
     with col1:
         st.metric("Current Regime", f"{regime} {st.session_state.hmm_generator.regime_icons.get(list(st.session_state.hmm_generator.regime_names.keys())[list(st.session_state.hmm_generator.regime_names.values()).index(regime)], '')}")
@@ -281,6 +286,16 @@ def display_hmm_results(signal_info, regime_stats, data, states, features):
         st.metric("Confidence", f"{confidence:.1f}%")
     
     with col3:
+        # Display regime status with appropriate color
+        regime_status = signal_info.get('regime_status', 'STABLE')
+        if regime_status == 'STABLE':
+            st.metric("Regime Status", f"🟢 {regime_status}")
+        elif regime_status == 'UNCERTAIN':
+            st.metric("Regime Status", f"🟡 {regime_status}")
+        else:  # TRANSITIONING
+            st.metric("Regime Status", f"🔴 {regime_status}")
+    
+    with col4:
         if has_patterns and signal_info.get('combined_signal'):
             st.metric("Combined Strength", f"{signal_info['combined_signal']['strength']}/10")
         else:
@@ -348,16 +363,19 @@ def display_hmm_results(signal_info, regime_stats, data, states, features):
         kelly = st.session_state.kelly_calculator
         probabilities = st.session_state.hmm_results['probabilities']
         current_probs = probabilities[-1]
+        regime_multiplier = st.session_state.hmm_results.get('regime_multiplier', 1.0)
         
         quick_kelly = kelly.calculate_from_hmm_results(
             regime_stats,
             current_probs,
-            100000.0,
-            0.5,
-            0.05
+            100000.0,  # portfolio_value
+            data,  # price_data for ATR and transaction costs
+            0.5,   # applied_fraction
+            0.05,  # stop_loss_pct
+            regime_multiplier  # regime transition multiplier
         )
         
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3, col4, col5 = st.columns(5)
         
         with col1:
             st.metric("Win Probability", f"{quick_kelly['win_probability']*100:.1f}%")
@@ -369,11 +387,29 @@ def display_hmm_results(signal_info, regime_stats, data, states, features):
             st.metric("Half Kelly", f"{quick_kelly['kelly_fraction']*50:.1f}%")
         
         with col4:
+            # Display net edge
+            net_edge = quick_kelly.get('edge_analysis', {}).get('net_edge', 0)
+            st.metric("Net Edge", f"{net_edge*100:.2f}%")
+        
+        with col5:
             risk_emoji = quick_kelly['risk_level']['emoji']
             risk_level = quick_kelly['risk_level']['level']
             st.metric("Risk Level", f"{risk_emoji} {risk_level}")
         
-        st.caption("💡 Based on $100k portfolio with 5% stop loss and Half Kelly (0.5x). Customize in Kelly Position Sizing tab →")
+        # Additional cost metrics
+        if 'transaction_costs' in quick_kelly and 'edge_analysis' in quick_kelly:
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                tx_cost = quick_kelly['transaction_costs']['total_round_trip_pct'] * 100
+                st.metric("Transaction Cost", f"{tx_cost:.2f}%")
+            with col2:
+                gross_edge = quick_kelly['edge_analysis']['gross_edge'] * 100
+                st.metric("Gross Edge", f"{gross_edge:.2f}%")
+            with col3:
+                atr = quick_kelly.get('atr_pct', 0) * 100
+                st.metric("ATR (14-day)", f"{atr:.2f}%")
+        
+        st.caption("💡 Based on $100k portfolio with 5% stop loss and Half Kelly (0.5x). Includes transaction costs and edge decay. Customize in Kelly Position Sizing tab →")
         
     except Exception as e:
         st.warning(f"Kelly summary unavailable: {str(e)}")
@@ -482,13 +518,17 @@ def kelly_from_hmm():
     if st.button("💰 Calculate Kelly Position Size", type="primary"):
         try:
             kelly = st.session_state.kelly_calculator
+            price_data = hmm_results.get('data')
+            regime_multiplier = hmm_results.get('regime_multiplier', 1.0)
             
             results = kelly.calculate_from_hmm_results(
                 regime_stats,
                 current_probs,
                 portfolio_value,
+                price_data,
                 applied_fraction,
-                stop_loss_pct
+                stop_loss_pct,
+                regime_multiplier
             )
             
             display_kelly_results(results)
@@ -615,6 +655,44 @@ def display_kelly_results(results):
             help="Maximum capital at risk"
         )
     
+    # Transaction Costs & Edge Analysis (if available)
+    if 'transaction_costs' in results and 'edge_analysis' in results:
+        st.subheader("💸 Transaction Costs & Edge Analysis")
+        
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            tx_cost = results['transaction_costs']['total_round_trip_pct'] * 100
+            st.metric("Transaction Cost", f"{tx_cost:.2f}%", help="Total round-trip cost (entry + exit)")
+        
+        with col2:
+            gross_edge = results['edge_analysis']['gross_edge'] * 100
+            st.metric("Gross Edge", f"{gross_edge:.2f}%", help="Edge before costs")
+        
+        with col3:
+            net_edge = results['edge_analysis']['net_edge'] * 100
+            tradeable = results['edge_analysis']['tradeable']
+            st.metric(
+                "Net Edge", 
+                f"{net_edge:.2f}%",
+                delta="✅ Tradeable" if tradeable else "❌ Skip",
+                help="Edge after transaction costs and decay"
+            )
+        
+        with col4:
+            if 'atr_pct' in results:
+                atr = results['atr_pct'] * 100
+                st.metric("ATR (14-day)", f"{atr:.2f}%", help="Volatility measure")
+        
+        # Show regime multiplier if available
+        if 'regime_multiplier' in results:
+            mult = results['regime_multiplier']
+            if mult < 1.0:
+                if mult == 0.5:
+                    st.warning(f"⚠️ Regime Transitioning - Position reduced to {mult*100:.0f}%")
+                else:
+                    st.info(f"📊 Regime Uncertain - Position reduced to {mult*100:.0f}%")
+    
     # Speedometer Gauge
     st.subheader("📊 Risk Level Gauge")
     
@@ -694,13 +772,17 @@ def combined_analytics():
         regime_stats = hmm_results['regime_stats']
         probabilities = hmm_results['probabilities']
         current_probs = probabilities[-1]
+        price_data = hmm_results.get('data')
+        regime_multiplier = hmm_results.get('regime_multiplier', 1.0)
         
         kelly_results = kelly.calculate_from_hmm_results(
             regime_stats,
             current_probs,
             100000.0,
+            price_data,
             0.5,
-            0.05
+            0.05,
+            regime_multiplier
         )
         
         # Combined metrics
