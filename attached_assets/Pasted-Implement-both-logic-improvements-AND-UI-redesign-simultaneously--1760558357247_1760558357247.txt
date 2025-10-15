@@ -1,0 +1,293 @@
+Implement both logic improvements AND UI redesign simultaneously:
+
+═══════════════════════════════════════════════════════════════
+PART 1: LOGIC IMPROVEMENTS (Backend Files)
+═══════════════════════════════════════════════════════════════
+
+FILE: kelly_calculator.py
+
+1. ADAPTIVE KELLY SIZING:
+   - Change base Kelly fraction: 0.30 → 0.15
+   - Add function: calculate_adaptive_kelly(confidence, atr_pct, base=0.15)
+     Formula: kelly = base * (confidence/100) * min(1.0, 0.05/atr_pct)
+     Cap: min(kelly, 0.25)
+   - Update all existing Kelly calculations to use this
+
+2. TRANSACTION COSTS:
+   - Add function: calculate_transaction_costs(spread_bps, position_size, adv20)
+     spread_cost = spread_bps
+     impact_cost = 50 * sqrt(position_size / adv20)
+     slippage = 5
+     total_round_trip = 2 * (spread_cost + impact_cost + slippage)
+     return total_round_trip
+
+3. NET EDGE CALCULATION:
+   - Add function: net_edge_after_costs(gross_edge, tx_cost_bps, holding_days=5)
+     decay = gross_edge * exp(-0.15 * holding_days)
+     net = decay - (tx_cost_bps / 10000)
+     return max(net, 0.0)
+   - Filter positions: only return where net_edge > 0
+
+FILE: hmm_signal_generator.py
+
+4. REGIME TRANSITION DETECTION:
+   - Add function: detect_regime_transition(hmm_history, current_probs)
+     Check: regime stability over last 5-10 periods
+     Return: ('STABLE' | 'UNCERTAIN' | 'TRANSITIONING', risk_multiplier)
+     risk_multiplier: 1.0 (stable), 0.75 (uncertain), 0.5 (transitioning)
+   - Apply risk_multiplier to position sizing
+
+═══════════════════════════════════════════════════════════════
+PART 2: UI REDESIGN (app.py only)
+═══════════════════════════════════════════════════════════════
+
+GOAL: Make the UI look like Excel - dry, professional, data-dense
+
+1. REMOVE ALL EMOJI ICONS:
+   - Delete all: 🟢 🔴 🟡 ⚪ 🟠 🐂 🐻 ↔️ 📊 🔨 💰
+   - Replace with plain text: "STRONG_BUY", "STRONG_SELL", "HOLD", "Bull", "Bear", "Sideways"
+
+2. COLOR SCHEME - Excel Grays:
+   Add this CSS at the top of app.py:
+   
+   st.markdown("""
+   <style>
+   /* Excel color palette */
+   :root {
+       --excel-white: #FFFFFF;
+       --excel-gray-50: #F2F2F2;
+       --excel-gray-100: #E7E6E6;
+       --excel-border: #D0D0D0;
+       --excel-text: #000000;
+   }
+   
+   /* Remove Streamlit branding colors */
+   .stApp {
+       background-color: var(--excel-white);
+   }
+   
+   /* All text black */
+   body, h1, h2, h3, p, div, span {
+       color: var(--excel-text) !important;
+   }
+   
+   /* Numbers must be monospace */
+   [data-testid="stMetricValue"] {
+       font-family: 'Consolas', 'Monaco', 'Courier New', monospace !important;
+       text-align: right;
+   }
+   
+   /* Remove colored alert boxes */
+   .stAlert {
+       background-color: var(--excel-gray-50) !important;
+       border: 1px solid var(--excel-border) !important;
+       color: var(--excel-text) !important;
+   }
+   
+   /* Headers - not too bold */
+   h1, h2, h3 {
+       font-weight: 600 !important;
+       border-bottom: 2px solid var(--excel-border);
+       padding-bottom: 8px;
+   }
+   
+   /* Tables - Excel style */
+   .dataframe {
+       border: 1px solid var(--excel-border) !important;
+       font-family: 'Consolas', monospace;
+   }
+   
+   .dataframe thead th {
+       background-color: var(--excel-gray-100) !important;
+       color: var(--excel-text) !important;
+       font-weight: 600;
+       border: 1px solid var(--excel-border) !important;
+   }
+   
+   .dataframe tbody tr:nth-child(even) {
+       background-color: var(--excel-gray-50);
+   }
+   
+   .dataframe tbody tr:nth-child(odd) {
+       background-color: var(--excel-white);
+   }
+   
+   /* Remove rounded corners everywhere */
+   * {
+       border-radius: 0 !important;
+   }
+   
+   /* Conditional formatting - Excel colors */
+   .positive-cell {
+       background-color: #C6EFCE !important;
+       color: #006100 !important;
+   }
+   
+   .negative-cell {
+       background-color: #FFC7CE !important;
+       color: #9C0006 !important;
+   }
+   
+   .neutral-cell {
+       background-color: #FFEB9C !important;
+       color: #9C5700 !important;
+   }
+   </style>
+   """, unsafe_allow_html=True)
+
+3. REPLACE st.success/info/warning BOXES:
+   
+   BEFORE:
+   st.success("🟢 STRONG_BUY - Strength: 8/10")
+   
+   AFTER:
+   st.markdown("""
+   <div style="border: 2px solid #006100; padding: 12px; background: #C6EFCE;">
+   <table style="width: 100%; font-family: Consolas, monospace; font-size: 11pt;">
+   <tr>
+       <td style="font-weight: 600;">Signal:</td>
+       <td style="text-align: right; color: #006100;"><b>STRONG_BUY</b></td>
+   </tr>
+   <tr>
+       <td>Strength:</td>
+       <td style="text-align: right;">8/10</td>
+   </tr>
+   </table>
+   </div>
+   """, unsafe_allow_html=True)
+
+4. REPLACE st.metric() CARDS:
+   
+   BEFORE:
+   col1, col2 = st.columns(2)
+   col1.metric("Current Signal", "HOLD", delta="0/10")
+   col2.metric("Regime", "Sideways", delta="90.5%")
+   
+   AFTER:
+   st.markdown("""
+   <table style="width: 100%; border: 1px solid #D0D0D0; border-collapse: collapse; font-family: Consolas, monospace;">
+   <thead style="background-color: #E7E6E6;">
+       <tr>
+           <th style="border: 1px solid #D0D0D0; padding: 8px; text-align: left;">Metric</th>
+           <th style="border: 1px solid #D0D0D0; padding: 8px; text-align: right;">Value</th>
+       </tr>
+   </thead>
+   <tbody>
+       <tr>
+           <td style="border: 1px solid #D0D0D0; padding: 8px;">Current Signal</td>
+           <td style="border: 1px solid #D0D0D0; padding: 8px; text-align: right; background: #FFEB9C; color: #9C5700;"><b>HOLD</b></td>
+       </tr>
+       <tr style="background: #F2F2F2;">
+           <td style="border: 1px solid #D0D0D0; padding: 8px;">Strength</td>
+           <td style="border: 1px solid #D0D0D0; padding: 8px; text-align: right;">0/10</td>
+       </tr>
+       <tr>
+           <td style="border: 1px solid #D0D0D0; padding: 8px;">Regime</td>
+           <td style="border: 1px solid #D0D0D0; padding: 8px; text-align: right;">Sideways</td>
+       </tr>
+       <tr style="background: #F2F2F2;">
+           <td style="border: 1px solid #D0D0D0; padding: 8px;">Confidence</td>
+           <td style="border: 1px solid #D0D0D0; padding: 8px; text-align: right;">90.5%</td>
+       </tr>
+   </tbody>
+   </table>
+   """, unsafe_allow_html=True)
+
+5. DATAFRAMES - Excel conditional formatting:
+   
+   def style_dataframe(df):
+       """Apply Excel-like conditional formatting"""
+       def color_negative_positive(val):
+           if isinstance(val, (int, float)):
+               if val > 0:
+                   return 'background-color: #C6EFCE; color: #006100'
+               elif val < 0:
+                   return 'background-color: #FFC7CE; color: #9C0006'
+           return ''
+       
+       return df.style.applymap(color_negative_positive)\
+                     .set_properties(**{
+                         'font-family': 'Consolas, monospace',
+                         'font-size': '11pt',
+                         'text-align': 'right',
+                         'border': '1px solid #D0D0D0'
+                     })\
+                     .set_table_styles([
+                         {'selector': 'thead th', 
+                          'props': [('background-color', '#E7E6E6'),
+                                   ('color', '#000000'),
+                                   ('font-weight', '600'),
+                                   ('border', '1px solid #D0D0D0')]}
+                     ])
+   
+   # Usage:
+   st.dataframe(style_dataframe(regime_df))
+
+6. BUTTONS - Excel style:
+   
+   st.markdown("""
+   <style>
+   .stButton > button {
+       background-color: #FFFFFF !important;
+       color: #000000 !important;
+       border: 1px solid #A6A6A6 !important;
+       border-radius: 0 !important;
+       padding: 8px 16px;
+       font-family: 'Segoe UI', Calibri, sans-serif;
+       font-size: 11pt;
+   }
+   .stButton > button:hover {
+       background-color: #F2F2F2 !important;
+       border: 1px solid #808080 !important;
+   }
+   </style>
+   """, unsafe_allow_html=True)
+
+7. CHARTS - Minimal Excel blue:
+   
+   import plotly.graph_objects as go
+   
+   fig = go.Figure()
+   fig.add_trace(go.Scatter(
+       x=dates,
+       y=prices,
+       mode='lines',
+       line=dict(color='#0563C1', width=1),  # Excel blue
+       name='Price'
+   ))
+   
+   fig.update_layout(
+       plot_bgcolor='#FFFFFF',
+       paper_bgcolor='#FFFFFF',
+       font=dict(family='Consolas, monospace', size=10, color='#000000'),
+       xaxis=dict(showgrid=True, gridcolor='#D0D0D0', gridwidth=1),
+       yaxis=dict(showgrid=True, gridcolor='#D0D0D0', gridwidth=1),
+       margin=dict(l=40, r=40, t=40, b=40)
+   )
+   
+   st.plotly_chart(fig, use_container_width=True)
+
+8. SECTION HEADERS:
+   
+   BEFORE:
+   st.header("📊 Regime Analysis")
+   
+   AFTER:
+   st.markdown("""
+   <div style="background: #E7E6E6; border: 1px solid #A6A6A6; padding: 8px; margin-bottom: 10px;">
+   <h3 style="margin: 0; font-size: 12pt; font-weight: 600; border: none;">REGIME ANALYSIS</h3>
+   </div>
+   """, unsafe_allow_html=True)
+
+═══════════════════════════════════════════════════════════════
+IMPLEMENTATION INSTRUCTIONS:
+═══════════════════════════════════════════════════════════════
+
+1. Start with logic improvements (kelly_calculator.py, hmm_signal_generator.py)
+2. Simultaneously update app.py with Excel styling
+3. Test each component works after changes
+4. Add logging to verify new calculations
+5. Keep all existing functionality - only change calculations and visual presentation
+
+Show me your implementation plan for both parts before proceeding.
+List which files you'll modify and in what order.
