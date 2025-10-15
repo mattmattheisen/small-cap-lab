@@ -6,6 +6,20 @@ This is a comprehensive trading platform built with Streamlit that combines Hidd
 
 ## Recent Changes
 
+**October 15, 2025:**
+- **Phase 1 Kelly Criterion Upgrade - Advanced Position Sizing**: Implemented sophisticated Kelly calculator with transaction cost analysis and adaptive volatility-based sizing
+- **Adaptive Kelly Base Factor**: Reduced to conservative 0.15 base with ATR-based volatility adjustment using formula: base * (confidence/100) * min(1.0, 0.05/atr_pct), capped at 0.25
+- **Transaction Cost Analysis**: Comprehensive cost estimation including spread cost (from daily price range), market impact (position size vs volume), and slippage
+- **Net Edge Calculation**: Implemented edge decay function: gross_edge * exp(-0.15 * holding_days) - transaction_costs, with automatic filtering to only recommend positions where net_edge > 0
+- **Regime Transition Detection**: Added market state analysis with risk multipliers:
+  - STABLE: Normal conditions, multiplier 1.0 (default)
+  - UNCERTAIN: Low confidence (probability spread < 0.2), multiplier 0.75
+  - TRANSITIONING: High volatility (>3 regime changes in last 10 periods), multiplier 0.5
+- **Enhanced UI Displays**: Added Transaction Costs & Edge Analysis section showing all cost components, gross edge, net edge with tradeable indicators (✅/❌), and ATR metrics
+- **Kelly Summary Enhancements**: Expanded HMM tab Kelly card to show 8 metrics including net edge, transaction costs, and regime transition warnings
+- **Test Validation**: Verified with AEIS (STABLE), SOFI (TRANSITIONING), and ARRY (STABLE) - all metrics displaying correctly
+- **Backup Created**: Saved previous version as kelly_calculator_backup_v1.py before major changes
+
 **October 14, 2025:**
 - **CSV Export Fix**: Resolved Excel date conversion issue in Small Cap Screener
 - Created separate `format_csv_export()` method for proper numeric CSV formatting
