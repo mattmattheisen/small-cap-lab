@@ -1,17 +1,184 @@
 """
-Kelly Criterion Position Sizing Calculator
-Calculates optimal position sizes based on win probability and win/loss ratios
+Kelly Criterion Position Sizing Calculator with Transaction Costs
+Upgraded: Adaptive Kelly with 0.15 base, transaction cost filtering, net edge calculation
 """
 
 import pandas as pd
 import numpy as np
 from typing import Dict, Tuple, Optional
+import math
 
 class KellyCalculator:
-    """Kelly Criterion calculator for position sizing"""
+    """Kelly Criterion calculator with transaction cost filtering"""
+    
+    # Conservative base Kelly - multiplied by confidence and volatility adjustments
+    BASE_KELLY = 0.15
     
     def __init__(self):
         self.default_fraction = 0.5  # Half Kelly recommended
+    
+    def calculate_transaction_costs(
+        self,
+        high: float,
+        low: float, 
+        close: float,
+        volume: float,
+        position_size_dollars: float
+    ) -> Dict:
+        """
+        Estimate transaction costs in basis points
+        
+        Args:
+            high: Day's high price
+            low: Day's low price
+            close: Day's close price
+            volume: Day's volume
+            position_size_dollars: Intended position size in dollars
+            
+        Returns:
+            Dictionary with cost breakdown in basis points
+        """
+        # Estimate bid-ask spread from daily range
+        # Use half the intraday range as spread proxy
+        if close > 0:
+            spread_bps = ((high - low) / close) * 10000 * 0.5
+        else:
+            spread_bps = 50  # Default 50 bps if no data
+        
+        # Calculate 20-day average dollar volume (use current as proxy)
+        adv20 = volume * close if volume > 0 and close > 0 else 1000000  # $1M default
+        
+        # Market impact cost: 50 * sqrt(position / adv20)
+        if adv20 > 0:
+            impact_cost = 50 * math.sqrt(position_size_dollars / adv20)
+        else:
+            impact_cost = 25  # Default 25 bps
+        
+        # Slippage estimate
+        slippage = 5  # 5 bps constant
+        
+        # Total round-trip cost (entry + exit)
+        total_round_trip = 2 * (spread_bps + impact_cost + slippage)
+        
+        return {
+            'spread_bps': spread_bps,
+            'impact_bps': impact_cost,
+            'slippage_bps': slippage,
+            'total_round_trip_bps': total_round_trip,
+            'total_round_trip_pct': total_round_trip / 10000
+        }
+    
+    def calculate_net_edge(
+        self,
+        gross_edge: float,
+        tx_cost_bps: float,
+        holding_days: int = 5
+    ) -> Dict:
+        """
+        Calculate net edge after transaction costs and edge decay
+        
+        Args:
+            gross_edge: Gross edge before costs (as fraction, e.g., 0.023 for 2.3%)
+            tx_cost_bps: Transaction costs in basis points
+            holding_days: Expected holding period (default 5 days)
+            
+        Returns:
+            Dictionary with edge breakdown
+        """
+        # Assumed 5-day holding period based on typical regime duration
+        # Edge decays over time: gross * exp(-0.15 * days)
+        decay_factor = math.exp(-0.15 * holding_days)
+        decayed_edge = gross_edge * decay_factor
+        
+        # Convert tx cost to fraction
+        tx_cost_fraction = tx_cost_bps / 10000
+        
+        # Net edge after costs
+        net_edge = decayed_edge - tx_cost_fraction
+        
+        return {
+            'gross_edge': gross_edge,
+            'decay_factor': decay_factor,
+            'decayed_edge': decayed_edge,
+            'tx_cost_pct': tx_cost_fraction,
+            'net_edge': max(net_edge, 0.0),  # Can't be negative
+            'tradeable': net_edge > 0
+        }
+    
+    def calculate_adaptive_kelly(
+        self,
+        confidence: float,
+        atr_pct: float,
+        base: float = None
+    ) -> float:
+        """
+        Calculate adaptive Kelly sizing based on confidence and volatility
+        
+        Args:
+            confidence: Regime confidence (0-100)
+            atr_pct: Average True Range as percentage (volatility measure)
+            base: Base Kelly fraction (default 0.15)
+            
+        Returns:
+            Adaptive Kelly fraction, capped at 0.25
+        """
+        if base is None:
+            base = self.BASE_KELLY
+        
+        # Scale by confidence (0-100 scale)
+        confidence_mult = confidence / 100
+        
+        # Scale inversely by volatility
+        # Target: 5% ATR = 1.0x, higher ATR reduces sizing
+        if atr_pct > 0:
+            volatility_mult = min(1.0, 0.05 / atr_pct)
+        else:
+            volatility_mult = 0.5  # Default if no ATR data
+        
+        # Adaptive Kelly = base * confidence * vol_adjustment
+        adaptive_kelly = base * confidence_mult * volatility_mult
+        
+        # Cap at 25% maximum
+        return min(adaptive_kelly, 0.25)
+    
+    def calculate_atr_percentage(self, price_data: pd.DataFrame, period: int = 14) -> float:
+        """
+        Calculate Average True Range as percentage of price
+        
+        Args:
+            price_data: DataFrame with High, Low, Close columns
+            period: ATR period (default 14)
+            
+        Returns:
+            ATR as percentage of close price
+        """
+        if len(price_data) < period:
+            return 0.05  # Default 5% if insufficient data
+        
+        try:
+            # True Range = max(high-low, abs(high-prev_close), abs(low-prev_close))
+            high = price_data['High']
+            low = price_data['Low']
+            close = price_data['Close']
+            
+            prev_close = close.shift(1)
+            
+            tr1 = high - low
+            tr2 = abs(high - prev_close)
+            tr3 = abs(low - prev_close)
+            
+            tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+            
+            # ATR = moving average of True Range
+            atr = tr.rolling(window=period).mean().iloc[-1]
+            
+            # ATR as percentage of close
+            current_close = close.iloc[-1]
+            atr_pct = atr / current_close if current_close > 0 else 0.05
+            
+            return atr_pct
+        except:
+            return 0.05  # Default on error
     
     def calculate_win_probability_from_regime(
         self, 
@@ -121,6 +288,9 @@ class KellyCalculator:
         
         kelly_fraction = (p * b - q) / b
         
+        # Apply BASE_KELLY reduction (0.15 multiplier)
+        kelly_fraction = kelly_fraction * self.BASE_KELLY
+        
         kelly_fraction = max(0, min(kelly_fraction, 1.0))
         
         return kelly_fraction
@@ -166,33 +336,91 @@ class KellyCalculator:
         regime_stats: Dict,
         current_regime_probs: np.ndarray,
         portfolio_value: float,
+        price_data: pd.DataFrame,
         applied_fraction: float = 0.5,
-        stop_loss_pct: float = 0.05
+        stop_loss_pct: float = 0.05,
+        regime_multiplier: float = 1.0
     ) -> Dict:
         """
-        Complete Kelly calculation from HMM results
+        Complete Kelly calculation from HMM results with transaction costs
         
         Args:
             regime_stats: Regime statistics from HMM
             current_regime_probs: Current regime probabilities
             portfolio_value: Portfolio value
+            price_data: Price data for ATR and transaction cost calculations
             applied_fraction: Fractional Kelly multiplier
             stop_loss_pct: Stop loss percentage
+            regime_multiplier: Risk multiplier from regime transition detection (default 1.0)
             
         Returns:
-            Complete Kelly analysis results
+            Complete Kelly analysis results with transaction costs
         """
+        # Calculate win probability and ratios
         win_prob, win_prob_breakdown = self.calculate_win_probability_from_regime(
             regime_stats, current_regime_probs
         )
         
         avg_win, avg_loss, wl_breakdown = self.calculate_win_loss_ratio(regime_stats)
         
+        # Calculate ATR for adaptive sizing
+        atr_pct = self.calculate_atr_percentage(price_data)
+        
+        # Get regime confidence (highest probability)
+        confidence = max(current_regime_probs) * 100
+        
+        # Calculate base Kelly
         kelly_fraction = self.calculate_kelly_fraction(win_prob, wl_breakdown['win_loss_ratio'])
         
+        # Apply adaptive Kelly adjustment
+        adaptive_kelly = self.calculate_adaptive_kelly(confidence, atr_pct)
+        
+        # Use the more conservative of the two
+        final_kelly = min(kelly_fraction, adaptive_kelly)
+        
+        # Apply regime transition multiplier
+        final_kelly = final_kelly * regime_multiplier
+        
+        # Calculate position size
         position_info = self.calculate_position_size(
-            portfolio_value, kelly_fraction, applied_fraction, stop_loss_pct
+            portfolio_value, final_kelly, applied_fraction, stop_loss_pct
         )
+        
+        # Calculate transaction costs
+        try:
+            latest = price_data.iloc[-1]
+            tx_costs = self.calculate_transaction_costs(
+                latest['High'],
+                latest['Low'],
+                latest['Close'],
+                latest['Volume'],
+                position_info['position_size']
+            )
+        except:
+            tx_costs = {
+                'spread_bps': 50,
+                'impact_bps': 25,
+                'slippage_bps': 5,
+                'total_round_trip_bps': 160,
+                'total_round_trip_pct': 0.016
+            }
+        
+        # Calculate gross edge (from win probability and win/loss ratio)
+        gross_edge = win_prob * avg_win - (1 - win_prob) * avg_loss
+        
+        # Calculate net edge after costs
+        edge_analysis = self.calculate_net_edge(
+            gross_edge,
+            tx_costs['total_round_trip_bps'],
+            holding_days=5
+        )
+        
+        # Final filter: only recommend if net edge > 0
+        if not edge_analysis['tradeable']:
+            final_kelly = 0
+            position_info['applied_kelly'] = 0
+            position_info['position_size'] = 0
+            position_info['risk_budget'] = 0
         
         risk_level = self.get_risk_level(position_info['applied_kelly'])
         
@@ -200,10 +428,15 @@ class KellyCalculator:
             'win_probability': win_prob,
             'win_prob_breakdown': win_prob_breakdown,
             'win_loss_breakdown': wl_breakdown,
-            'kelly_fraction': kelly_fraction,
+            'kelly_fraction': final_kelly,
             'position_info': position_info,
             'risk_level': risk_level,
-            'recommendation': self.get_recommendation(kelly_fraction, applied_fraction)
+            'recommendation': self.get_recommendation(final_kelly, applied_fraction),
+            'transaction_costs': tx_costs,
+            'edge_analysis': edge_analysis,
+            'atr_pct': atr_pct,
+            'confidence': confidence,
+            'regime_multiplier': regime_multiplier
         }
     
     def get_risk_level(self, applied_kelly: float) -> Dict:
