@@ -349,13 +349,13 @@ def display_hmm_results(signal_info, regime_stats, data, states, features):
     
     fig = go.Figure()
     
-    # Add price line
+    # Add price line (light color for dark theme)
     fig.add_trace(go.Scatter(
         x=data.index[-len(states):],
         y=data['Close'].iloc[-len(states):],
         mode='lines',
         name='Price',
-        line=dict(color='black', width=2)
+        line=dict(color='#3b82f6', width=2)  # Blue for visibility on dark
     ))
     
     # Add regime background colors
@@ -371,7 +371,10 @@ def display_hmm_results(signal_info, regime_stats, data, states, features):
                 line_width=0
             )
     
+    # Apply dark chart layout
+    dark_layout = get_dark_chart_layout()
     fig.update_layout(
+        **dark_layout,
         title="Stock Price with Market Regime Detection",
         xaxis_title="Date",
         yaxis_title="Price ($)",
@@ -470,36 +473,38 @@ def display_hmm_results(signal_info, regime_stats, data, states, features):
         st.warning(f"Kelly summary unavailable: {str(e)}")
 
 def create_kelly_gauge(applied_kelly_pct, full_kelly_pct=None):
-    """Create speedometer gauge for Kelly percentage"""
+    """Create speedometer gauge for Kelly percentage - Dark Theme"""
     fig = go.Figure(go.Indicator(
         mode="gauge+number",
         value=applied_kelly_pct,
-        title={'text': "Applied Kelly %", 'font': {'size': 24}},
-        number={'suffix': "%", 'font': {'size': 40}},
+        title={'text': "Applied Kelly %", 'font': {'size': 24, 'color': '#e0e0e0'}},
+        number={'suffix': "%", 'font': {'size': 40, 'color': '#e0e0e0'}},
         gauge={
-            'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "darkgray"},
-            'bar': {'color': "darkblue", 'thickness': 0.3},
-            'bgcolor': "white",
+            'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "#e0e0e0"},
+            'bar': {'color': "#3b82f6", 'thickness': 0.3},  # Blue bar
+            'bgcolor': "#1e1e1e",  # Dark background
             'borderwidth': 2,
-            'bordercolor': "gray",
+            'bordercolor': "#404040",
             'steps': [
-                {'range': [0, 25], 'color': '#28a745'},      # Green - Conservative
-                {'range': [25, 50], 'color': '#ffc107'},     # Yellow - Moderate/Optimal
-                {'range': [50, 75], 'color': '#fd7e14'},     # Orange - Aggressive
-                {'range': [75, 100], 'color': '#dc3545'}     # Red - Very Aggressive/Danger
+                {'range': [0, 25], 'color': '#1a3a1a'},      # Dark Green - Conservative
+                {'range': [25, 50], 'color': '#3a3a1a'},     # Dark Yellow - Moderate/Optimal
+                {'range': [50, 75], 'color': '#3a2a1a'},     # Dark Orange - Aggressive
+                {'range': [75, 100], 'color': '#3a1a1a'}     # Dark Red - Very Aggressive/Danger
             ],
             'threshold': {
-                'line': {'color': "black", 'width': 4},
+                'line': {'color': "#e0e0e0", 'width': 4},
                 'thickness': 0.75,
                 'value': full_kelly_pct if full_kelly_pct else applied_kelly_pct
             }
         }
     ))
     
+    # Apply dark layout
+    dark_layout = get_dark_chart_layout()
     fig.update_layout(
+        **dark_layout,
         height=300,
-        margin=dict(l=20, r=20, t=50, b=20),
-        font={'size': 16}
+        margin=dict(l=20, r=20, t=50, b=20)
     )
     
     return fig
@@ -883,13 +888,13 @@ def combined_analytics():
         hmm_data = hmm_results['data']
         states = hmm_results['states']
         
-        # Price with regime overlay
+        # Price with regime overlay (blue for dark theme)
         fig.add_trace(go.Scatter(
             x=hmm_data.index[-len(states):],
             y=hmm_data['Close'].iloc[-len(states):],
             mode='lines',
             name='Price',
-            line=dict(color='black', width=2),
+            line=dict(color='#3b82f6', width=2),  # Blue for dark background
             yaxis='y1'
         ))
         
@@ -907,8 +912,10 @@ def combined_analytics():
                     line_width=0
                 )
     
-    # Update layout
+    # Apply dark chart layout
+    dark_layout = get_dark_chart_layout()
     fig.update_layout(
+        **dark_layout,
         title="HMM Regime Detection Over Time",
         xaxis_title="Date",
         yaxis_title="Stock Price ($)",
