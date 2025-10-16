@@ -14,13 +14,11 @@ from hmm_signal_generator import HMMSignalGenerator
 from kelly_calculator import KellyCalculator
 from small_cap_screener import SmallCapScreener
 from utils import format_percentage, format_number, validate_date_range, get_stock_data_cached, clear_stock_data_cache, format_currency
-from excel_styles import (
-    get_excel_styles, 
-    create_excel_metric_table, 
-    create_excel_table, 
-    create_excel_alert, 
-    create_excel_section_header,
-    get_conditional_class
+from dark_terminal_styles import (
+    get_dark_terminal_styles,
+    create_dark_metric_table,
+    create_status_bar,
+    get_dark_chart_layout
 )
 
 # Page configuration
@@ -32,8 +30,8 @@ st.set_page_config(
 )
 
 def main():
-    # Inject Excel-style CSS
-    st.markdown(get_excel_styles(), unsafe_allow_html=True)
+    # Inject Dark Bloomberg Terminal CSS
+    st.markdown(get_dark_terminal_styles(), unsafe_allow_html=True)
     
     # Header
     st.title("Advanced Trading Platform")
@@ -79,19 +77,25 @@ def main():
         st.session_state.small_cap_screener = SmallCapScreener()
     
     # Create tabs
-    tab1, tab2, tab3, tab4 = st.tabs(["HMM Trading Signals", "Kelly Position Sizing", "Combined Analytics", "Small Cap Screener"])
+    tab1, tab2, tab3, tab4 = st.tabs(["Small Cap Screener", "HMM Trading Signals", "Kelly Position Sizing", "Combined Analytics"])
     
     with tab1:
-        hmm_trading_signals()
+        small_cap_screener()
     
     with tab2:
-        kelly_position_sizing()
+        hmm_trading_signals()
     
     with tab3:
-        combined_analytics()
+        kelly_position_sizing()
     
     with tab4:
-        small_cap_screener()
+        combined_analytics()
+    
+    # Status bar at bottom
+    ticker = ""
+    if 'hmm_results' in st.session_state and 'symbol' in st.session_state.hmm_results:
+        ticker = st.session_state.hmm_results['symbol']
+    st.markdown(create_status_bar(ticker=ticker), unsafe_allow_html=True)
 
 def hmm_trading_signals():
     """HMM Trading Signals Tab"""
@@ -101,7 +105,7 @@ def hmm_trading_signals():
     
     # Sidebar inputs for HMM
     with st.sidebar:
-        st.markdown(create_excel_section_header("HMM Analysis Settings"), unsafe_allow_html=True)
+        st.subheader("HMM Analysis Settings")
         
         symbol = st.text_input(
             "Stock Symbol:",
@@ -219,15 +223,20 @@ def display_hmm_results(signal_info, regime_stats, data, states, features):
         else:
             alert_type = "warning"
         
-        st.markdown(create_excel_alert(
-            f"<strong>{action}</strong> - Signal Strength: {combined_strength}/10", 
-            alert_type
-        ), unsafe_allow_html=True)
+        # Display signal based on type
+        signal_text = f"**{action}** - Signal Strength: {combined_strength}/10"
+        if alert_type == "success":
+            st.success(signal_text)
+        elif alert_type == "error":
+            st.error(signal_text)
+        else:
+            st.warning(signal_text)
         
-        # Show reasoning in Excel table
+        # Show reasoning
         if combined.get('reasoning'):
-            reasoning_rows = [[reason] for reason in combined['reasoning']]
-            st.markdown(create_excel_table(['Signal Reasoning'], reasoning_rows), unsafe_allow_html=True)
+            st.markdown("**Signal Reasoning:**")
+            for reason in combined['reasoning']:
+                st.markdown(f"• {reason}")
     
     else:
         # Original HMM-only signal display - Excel style
@@ -241,17 +250,21 @@ def display_hmm_results(signal_info, regime_stats, data, states, features):
         else:
             alert_type = "warning"
         
-        st.markdown(create_excel_alert(
-            f"<strong>{signal}</strong> Signal - Strength: {strength}/10", 
-            alert_type
-        ), unsafe_allow_html=True)
+        # Display signal based on type
+        signal_text = f"**{signal}** Signal - Strength: {strength}/10"
+        if alert_type == "success":
+            st.success(signal_text)
+        elif alert_type == "error":
+            st.error(signal_text)
+        else:
+            st.warning(signal_text)
     
     # Pattern Information Section - Excel Style
     if has_patterns:
         pattern_signal = signal_info.get('pattern_signal', {})
         pattern_summary = signal_info.get('pattern_summary', {})
         
-        st.markdown(create_excel_section_header("Candlestick Pattern Analysis"), unsafe_allow_html=True)
+        st.subheader("Candlestick Pattern Analysis")
         
         col1, col2, col3, col4 = st.columns(4)
         
@@ -259,7 +272,7 @@ def display_hmm_results(signal_info, regime_stats, data, states, features):
             pattern_text = pattern_signal.get('tag', 'None')
             pattern_dir = pattern_signal.get('dir', 0)
             is_positive = True if pattern_dir == 1 else (False if pattern_dir == -1 else None)
-            st.markdown(create_excel_metric_table(
+            st.markdown(create_dark_metric_table(
                 "Current Pattern", 
                 pattern_text if pattern_text != 'None' else "No Pattern",
                 is_positive
@@ -267,15 +280,15 @@ def display_hmm_results(signal_info, regime_stats, data, states, features):
         
         with col2:
             total_patterns = pattern_summary.get('total_patterns', 0)
-            st.markdown(create_excel_metric_table("Patterns (30d)", str(total_patterns)), unsafe_allow_html=True)
+            st.markdown(create_dark_metric_table("Patterns (30d)", str(total_patterns)), unsafe_allow_html=True)
         
         with col3:
             bullish_count = pattern_summary.get('bullish_count', 0)
-            st.markdown(create_excel_metric_table("Bullish Patterns", str(bullish_count), True), unsafe_allow_html=True)
+            st.markdown(create_dark_metric_table("Bullish Patterns", str(bullish_count), True), unsafe_allow_html=True)
         
         with col4:
             bearish_count = pattern_summary.get('bearish_count', 0)
-            st.markdown(create_excel_metric_table("Bearish Patterns", str(bearish_count), False), unsafe_allow_html=True)
+            st.markdown(create_dark_metric_table("Bearish Patterns", str(bearish_count), False), unsafe_allow_html=True)
         
         # Recent patterns
         if pattern_summary.get('recent_patterns'):
@@ -289,33 +302,33 @@ def display_hmm_results(signal_info, regime_stats, data, states, features):
     regime = signal_info['regime']
     confidence = signal_info['confidence']
     
-    st.markdown(create_excel_section_header("Signal Components"), unsafe_allow_html=True)
+    st.subheader("Signal Components")
     
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
         # Remove emoji from regime display
-        st.markdown(create_excel_metric_table("Current Regime", regime), unsafe_allow_html=True)
+        st.markdown(create_dark_metric_table("Current Regime", regime), unsafe_allow_html=True)
     
     with col2:
-        st.markdown(create_excel_metric_table("Confidence", f"{confidence:.1f}%"), unsafe_allow_html=True)
+        st.markdown(create_dark_metric_table("Confidence", f"{confidence:.1f}%"), unsafe_allow_html=True)
     
     with col3:
         # Display regime status with conditional formatting
         regime_status = signal_info.get('regime_status', 'STABLE')
         is_positive = True if regime_status == 'STABLE' else (None if regime_status == 'UNCERTAIN' else False)
-        st.markdown(create_excel_metric_table("Regime Status", regime_status, is_positive), unsafe_allow_html=True)
+        st.markdown(create_dark_metric_table("Regime Status", regime_status, is_positive), unsafe_allow_html=True)
     
     with col4:
         if has_patterns and signal_info.get('combined_signal'):
             strength_val = signal_info['combined_signal']['strength']
-            st.markdown(create_excel_metric_table("Combined Strength", f"{strength_val}/10"), unsafe_allow_html=True)
+            st.markdown(create_dark_metric_table("Combined Strength", f"{strength_val}/10"), unsafe_allow_html=True)
         else:
             strength_val = signal_info['strength']
-            st.markdown(create_excel_metric_table("Signal Strength", f"{strength_val}/10"), unsafe_allow_html=True)
+            st.markdown(create_dark_metric_table("Signal Strength", f"{strength_val}/10"), unsafe_allow_html=True)
     
     # Regime Statistics - Excel Style (remove emojis)
-    st.markdown(create_excel_section_header("Regime Analysis"), unsafe_allow_html=True)
+    st.subheader("Regime Analysis")
     
     regime_df = pd.DataFrame([
         {
@@ -332,7 +345,7 @@ def display_hmm_results(signal_info, regime_stats, data, states, features):
     st.dataframe(regime_df, use_container_width=True, hide_index=True)
     
     # Price chart with regime overlay - Excel Style header
-    st.markdown(create_excel_section_header("Price History with Regime Detection"), unsafe_allow_html=True)
+    st.subheader("Price History with Regime Detection")
     
     fig = go.Figure()
     
@@ -369,11 +382,8 @@ def display_hmm_results(signal_info, regime_stats, data, states, features):
     st.plotly_chart(fig, use_container_width=True)
     
     # Kelly Criterion Summary Card - Excel Style
-    st.markdown(create_excel_section_header("Kelly Position Sizing Summary"), unsafe_allow_html=True)
-    st.markdown(create_excel_alert(
-        "Quick Kelly calculation based on HMM regime analysis. Visit the Kelly Position Sizing tab for detailed analysis.",
-        "info"
-    ), unsafe_allow_html=True)
+    st.subheader("Kelly Position Sizing Summary")
+    st.info("Quick Kelly calculation based on HMM regime analysis. Visit the Kelly Position Sizing tab for detailed analysis.")
     
     try:
         kelly = st.session_state.kelly_calculator
@@ -394,19 +404,19 @@ def display_hmm_results(signal_info, regime_stats, data, states, features):
         col1, col2, col3, col4, col5 = st.columns(5)
         
         with col1:
-            st.markdown(create_excel_metric_table(
+            st.markdown(create_dark_metric_table(
                 "Win Probability", 
                 f"{quick_kelly['win_probability']*100:.1f}%"
             ), unsafe_allow_html=True)
         
         with col2:
-            st.markdown(create_excel_metric_table(
+            st.markdown(create_dark_metric_table(
                 "Full Kelly", 
                 f"{quick_kelly['kelly_fraction']*100:.1f}%"
             ), unsafe_allow_html=True)
         
         with col3:
-            st.markdown(create_excel_metric_table(
+            st.markdown(create_dark_metric_table(
                 "Half Kelly", 
                 f"{quick_kelly['kelly_fraction']*50:.1f}%"
             ), unsafe_allow_html=True)
@@ -415,7 +425,7 @@ def display_hmm_results(signal_info, regime_stats, data, states, features):
             # Display net edge with conditional formatting
             net_edge = quick_kelly.get('edge_analysis', {}).get('net_edge', 0)
             is_positive = True if net_edge > 0 else False
-            st.markdown(create_excel_metric_table(
+            st.markdown(create_dark_metric_table(
                 "Net Edge", 
                 f"{net_edge*100:.2f}%",
                 is_positive
@@ -424,7 +434,7 @@ def display_hmm_results(signal_info, regime_stats, data, states, features):
         with col5:
             # Remove emoji from risk level
             risk_level = quick_kelly['risk_level']['level']
-            st.markdown(create_excel_metric_table(
+            st.markdown(create_dark_metric_table(
                 "Risk Level", 
                 risk_level
             ), unsafe_allow_html=True)
@@ -434,33 +444,30 @@ def display_hmm_results(signal_info, regime_stats, data, states, features):
             col1, col2, col3 = st.columns(3)
             with col1:
                 tx_cost = quick_kelly['transaction_costs']['total_round_trip_pct'] * 100
-                st.markdown(create_excel_metric_table(
+                st.markdown(create_dark_metric_table(
                     "Transaction Cost", 
                     f"{tx_cost:.2f}%",
                     False  # Red for costs
                 ), unsafe_allow_html=True)
             with col2:
                 gross_edge = quick_kelly['edge_analysis']['gross_edge'] * 100
-                st.markdown(create_excel_metric_table(
+                st.markdown(create_dark_metric_table(
                     "Gross Edge", 
                     f"{gross_edge:.2f}%",
                     True if gross_edge > 0 else False
                 ), unsafe_allow_html=True)
             with col3:
                 atr = quick_kelly.get('atr_pct', 0) * 100
-                st.markdown(create_excel_metric_table(
+                st.markdown(create_dark_metric_table(
                     "ATR (14-day)", 
                     f"{atr:.2f}%"
                 ), unsafe_allow_html=True)
         
-        # Info note - Excel style
-        st.markdown(create_excel_alert(
-            "Based on $100k portfolio with 5% stop loss and Half Kelly (0.5x). Includes transaction costs and edge decay. Customize in Kelly Position Sizing tab →",
-            "info"
-        ), unsafe_allow_html=True)
+        # Info note
+        st.info("Based on $100k portfolio with 5% stop loss and Half Kelly (0.5x). Includes transaction costs and edge decay. Customize in Kelly Position Sizing tab →")
         
     except Exception as e:
-        st.markdown(create_excel_alert(f"Kelly summary unavailable: {str(e)}", "warning"), unsafe_allow_html=True)
+        st.warning(f"Kelly summary unavailable: {str(e)}")
 
 def create_kelly_gauge(applied_kelly_pct, full_kelly_pct=None):
     """Create speedometer gauge for Kelly percentage"""
@@ -676,25 +683,25 @@ def display_kelly_results(results):
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.markdown(create_excel_metric_table(
+        st.markdown(create_dark_metric_table(
             "Full Kelly %",
             f"{position_info['full_kelly_fraction']*100:.1f}%"
         ), unsafe_allow_html=True)
     
     with col2:
-        st.markdown(create_excel_metric_table(
+        st.markdown(create_dark_metric_table(
             "Applied Kelly %",
             f"{position_info['applied_kelly']*100:.1f}%"
         ), unsafe_allow_html=True)
     
     with col3:
-        st.markdown(create_excel_metric_table(
+        st.markdown(create_dark_metric_table(
             "Position Size",
             format_currency(position_info['position_size'])
         ), unsafe_allow_html=True)
     
     with col4:
-        st.markdown(create_excel_metric_table(
+        st.markdown(create_dark_metric_table(
             "Risk Budget",
             format_currency(position_info['risk_budget'])
         ), unsafe_allow_html=True)
@@ -707,11 +714,11 @@ def display_kelly_results(results):
         
         with col1:
             tx_cost = results['transaction_costs']['total_round_trip_pct'] * 100
-            st.markdown(create_excel_metric_table("Transaction Cost", f"{tx_cost:.2f}%"), unsafe_allow_html=True)
+            st.markdown(create_dark_metric_table("Transaction Cost", f"{tx_cost:.2f}%"), unsafe_allow_html=True)
         
         with col2:
             gross_edge = results['edge_analysis']['gross_edge'] * 100
-            st.markdown(create_excel_metric_table("Gross Edge", f"{gross_edge:.2f}%"), unsafe_allow_html=True)
+            st.markdown(create_dark_metric_table("Gross Edge", f"{gross_edge:.2f}%"), unsafe_allow_html=True)
         
         with col3:
             net_edge = results['edge_analysis']['net_edge'] * 100
@@ -723,12 +730,12 @@ def display_kelly_results(results):
             else:
                 is_positive = False
                 text = f"{net_edge_text} ✗"
-            st.markdown(create_excel_metric_table("Net Edge", text, is_positive=is_positive), unsafe_allow_html=True)
+            st.markdown(create_dark_metric_table("Net Edge", text, is_positive=is_positive), unsafe_allow_html=True)
         
         with col4:
             if 'atr_pct' in results:
                 atr = results['atr_pct'] * 100
-                st.markdown(create_excel_metric_table("ATR (14-day)", f"{atr:.2f}%"), unsafe_allow_html=True)
+                st.markdown(create_dark_metric_table("ATR (14-day)", f"{atr:.2f}%"), unsafe_allow_html=True)
         
         # Show regime multiplier if available
         if 'regime_multiplier' in results:
@@ -841,17 +848,17 @@ def combined_analytics():
             else:
                 action = hmm_results['signal_info']['signal']
             strength = hmm_results['signal_info']['strength']
-            st.markdown(create_excel_metric_table("Current Signal", f"{action} ({strength}/10)"), unsafe_allow_html=True)
+            st.markdown(create_dark_metric_table("Current Signal", f"{action} ({strength}/10)"), unsafe_allow_html=True)
         
         with col2:
-            st.markdown(create_excel_metric_table("Kelly Fraction", f"{kelly_results['kelly_fraction']*100:.1f}%"), unsafe_allow_html=True)
+            st.markdown(create_dark_metric_table("Kelly Fraction", f"{kelly_results['kelly_fraction']*100:.1f}%"), unsafe_allow_html=True)
         
         with col3:
-            st.markdown(create_excel_metric_table("Win Probability", f"{kelly_results['win_probability']*100:.1f}%"), unsafe_allow_html=True)
+            st.markdown(create_dark_metric_table("Win Probability", f"{kelly_results['win_probability']*100:.1f}%"), unsafe_allow_html=True)
         
         with col4:
             risk_level = kelly_results['risk_level']
-            st.markdown(create_excel_metric_table("Risk Level", risk_level['level']), unsafe_allow_html=True)
+            st.markdown(create_dark_metric_table("Risk Level", risk_level['level']), unsafe_allow_html=True)
     
     except Exception as e:
         st.error(f"Error calculating Kelly metrics: {str(e)}")
@@ -925,22 +932,22 @@ def analyze_regime_performance(hmm_results):
             col1, col2, col3 = st.columns(3)
             
             with col1:
-                st.markdown(create_excel_metric_table("Days in Regime", str(stats['days'])), unsafe_allow_html=True)
-                st.markdown(create_excel_metric_table("Persistence", f"{stats['persistence']:.1f}%"), unsafe_allow_html=True)
+                st.markdown(create_dark_metric_table("Days in Regime", str(stats['days'])), unsafe_allow_html=True)
+                st.markdown(create_dark_metric_table("Persistence", f"{stats['persistence']:.1f}%"), unsafe_allow_html=True)
             
             with col2:
-                st.markdown(create_excel_metric_table("Average Return", f"{stats['avg_return']:.2f}%"), unsafe_allow_html=True)
-                st.markdown(create_excel_metric_table("Volatility", f"{stats['volatility']:.2f}%"), unsafe_allow_html=True)
+                st.markdown(create_dark_metric_table("Average Return", f"{stats['avg_return']:.2f}%"), unsafe_allow_html=True)
+                st.markdown(create_dark_metric_table("Volatility", f"{stats['volatility']:.2f}%"), unsafe_allow_html=True)
             
             with col3:
                 # Calculate regime-specific risk metrics
                 if stats['volatility'] > 0:
                     regime_sharpe = stats['avg_return'] / stats['volatility']
-                    st.markdown(create_excel_metric_table("Regime Sharpe*", f"{regime_sharpe:.2f}"), unsafe_allow_html=True)
+                    st.markdown(create_dark_metric_table("Regime Sharpe*", f"{regime_sharpe:.2f}"), unsafe_allow_html=True)
                 else:
-                    st.markdown(create_excel_metric_table("Regime Sharpe*", "N/A"), unsafe_allow_html=True)
+                    st.markdown(create_dark_metric_table("Regime Sharpe*", "N/A"), unsafe_allow_html=True)
                 
-                st.markdown(create_excel_metric_table("Market Share", f"{stats['percentage']:.1f}%"), unsafe_allow_html=True)
+                st.markdown(create_dark_metric_table("Market Share", f"{stats['percentage']:.1f}%"), unsafe_allow_html=True)
     
     st.caption("*Regime Sharpe = Average Return / Volatility (simplified calculation)")
 
@@ -1052,20 +1059,20 @@ def small_cap_screener():
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.markdown(create_excel_metric_table("Market Cap Range", f"${market_cap_min/1e6:.0f}M - ${market_cap_max/1e9:.1f}B"), unsafe_allow_html=True)
-        st.markdown(create_excel_metric_table("Revenue Growth", f"≥{revenue_growth_min*100:.0f}%"), unsafe_allow_html=True)
+        st.markdown(create_dark_metric_table("Market Cap Range", f"${market_cap_min/1e6:.0f}M - ${market_cap_max/1e9:.1f}B"), unsafe_allow_html=True)
+        st.markdown(create_dark_metric_table("Revenue Growth", f"≥{revenue_growth_min*100:.0f}%"), unsafe_allow_html=True)
     
     with col2:
-        st.markdown(create_excel_metric_table("EPS Growth", f"≥{eps_growth_min*100:.0f}%"), unsafe_allow_html=True)
-        st.markdown(create_excel_metric_table("Profit Margin", f"≥{profit_margin_min*100:.0f}%"), unsafe_allow_html=True)
+        st.markdown(create_dark_metric_table("EPS Growth", f"≥{eps_growth_min*100:.0f}%"), unsafe_allow_html=True)
+        st.markdown(create_dark_metric_table("Profit Margin", f"≥{profit_margin_min*100:.0f}%"), unsafe_allow_html=True)
     
     with col3:
-        st.markdown(create_excel_metric_table("Debt/Equity", f"≤{debt_equity_max*100:.0f}%"), unsafe_allow_html=True)
-        st.markdown(create_excel_metric_table("PEG Ratio", f"≤{peg_ratio_max:.1f}"), unsafe_allow_html=True)
+        st.markdown(create_dark_metric_table("Debt/Equity", f"≤{debt_equity_max*100:.0f}%"), unsafe_allow_html=True)
+        st.markdown(create_dark_metric_table("PEG Ratio", f"≤{peg_ratio_max:.1f}"), unsafe_allow_html=True)
     
     with col4:
-        st.markdown(create_excel_metric_table("Daily Volume", f"≥${min_volume_usd/1e6:.1f}M"), unsafe_allow_html=True)
-        st.markdown(create_excel_metric_table("Stocks to Screen", str(len(screener.small_cap_universe))), unsafe_allow_html=True)
+        st.markdown(create_dark_metric_table("Daily Volume", f"≥${min_volume_usd/1e6:.1f}M"), unsafe_allow_html=True)
+        st.markdown(create_dark_metric_table("Stocks to Screen", str(len(screener.small_cap_universe))), unsafe_allow_html=True)
     
     # Run screening button with refresh option
     col_btn1, col_btn2 = st.columns([3, 1])

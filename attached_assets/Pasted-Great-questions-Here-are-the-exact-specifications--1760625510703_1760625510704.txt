@@ -1,0 +1,108 @@
+Great questions! Here are the exact specifications:
+
+═══════════════════════════════════════════════════════════════
+ANSWERS TO YOUR QUESTIONS:
+═══════════════════════════════════════════════════════════════
+
+1. CURRENT DARK THEME:
+   Looking at the screenshots, Streamlit IS already dark.
+   
+   Action: ENHANCE the existing dark theme with these specific colors:
+   - Main background: #1e1e1e (very dark gray, almost black)
+   - Sidebar: #252525 (slightly lighter)
+   - Panels/cards: #2a2a2a (even lighter for contrast)
+   - Borders: #404040 (subtle gray lines)
+   - Text: #e0e0e0 (light gray, easy to read)
+   
+   Make sure the dark theme is CONSISTENT across all elements.
+
+2. DATA TABLES/DATAFRAMES:
+   YES - Dark Bloomberg style:
+   - Background: #1e1e1e (match main background)
+   - Header row: #2a2a2a with light text (#e0e0e0)
+   - Alternate rows: #1e1e1e and #252525 (subtle striping)
+   - Borders: 1px solid #404040 (visible but subtle)
+   - Text: #e0e0e0 (light gray)
+   - Numbers: Monospace font, right-aligned
+   - Keep conditional formatting (green/red) but use DARKER shades:
+     * Positive: background #1a3a1a, text #4ade80 (dark green bg, bright green text)
+     * Negative: background #3a1a1a, text #f87171 (dark red bg, bright red text)
+
+3. CHARTS (PLOTLY):
+   YES - Make them dark to match:
+   - Plot background: #1e1e1e
+   - Paper background: #2a2a2a
+   - Grid lines: #404040 (subtle gray)
+   - Text/labels: #e0e0e0 (light gray)
+   - Chart colors: Keep data colors vivid for visibility (blue #3b82f6, green #10b981, red #ef4444)
+   - Border: 1px solid #404040
+   
+   The gauge chart should also be dark with light text.
+
+4. TAB REORDERING:
+   Do BOTH together (styling + tab reorder in one implementation).
+   
+   New order:
+   1. Small Cap Screener
+   2. HMM Trading Signals
+   3. Kelly Position Sizing
+   4. Combined Analytics
+
+5. EXCEL-STYLE TABLES YOU JUST CREATED:
+   CONVERT to dark theme versions:
+   - Keep the 2-column structure (it's good!)
+   - Change colors to dark:
+     * Background: #2a2a2a
+     * Border: 1px solid #404040
+     * Label column: background #252525, text #a0a0a0 (dimmer gray)
+     * Value column: background #2a2a2a, text #e0e0e0 (brighter)
+     * Numbers: Monospace, right-aligned
+   - Keep sharp corners (border-radius: 0)
+
+6. STATUS BAR:
+   YES - Add fixed status bar:
+   - Position: Fixed at bottom of viewport (always visible when scrolling)
+   - Height: 32px
+   - Background: #1a1a1a (darkest)
+   - Border-top: 1px solid #404040
+   - Text: #888888 (dim gray), font-size 10pt
+   - Content: "Ready | Last Updated: [timestamp] | Data Source: Yahoo Finance"
+   - If possible, include current ticker if one is being analyzed
+
+═══════════════════════════════════════════════════════════════
+COMPLETE TRANSFORMATION CHECKLIST:
+═══════════════════════════════════════════════════════════════
+
+✅ Apply dark theme (#1e1e1e, #2a2a2a, #404040)
+✅ Remove ALL rounded corners (border-radius: 0 everywhere)
+✅ Change buttons from red to dark gray (#2a2a2a, border #555555)
+✅ Change sliders to subtle gray
+✅ Make info boxes dark (#252525, border #404040)
+✅ Convert tables to dark theme with light text
+✅ Update charts to dark backgrounds
+✅ Keep conditional formatting but use dark shades
+✅ Reduce spacing (more data-dense)
+✅ Reorder tabs: Screener → HMM → Kelly → Combined
+✅ Add fixed status bar at bottom
+✅ Hide Streamlit branding (hamburger menu, footer)
+✅ Make all numbers monospace and right-aligned
+✅ Typography: 11pt body, 14pt headers, font-weight 400
+
+═══════════════════════════════════════════════════════════════
+IMPLEMENTATION APPROACH:
+═══════════════════════════════════════════════════════════════
+
+Do the complete transformation in ONE implementation:
+1. Apply dark theme CSS globally
+2. Update all 4 tabs to match
+3. Reorder tabs
+4. Update tables, charts, buttons
+5. Add status bar
+
+Then show me:
+- Screenshots of all 4 tabs in the new dark theme
+- Confirmation that tabs are in correct order
+- Confirmation that all rounded corners are gone
+- Confirmation that all buttons are gray (no red)
+
+GOAL: Dark Bloomberg Terminal aesthetic - professional, data-dense, easy on eyes.
