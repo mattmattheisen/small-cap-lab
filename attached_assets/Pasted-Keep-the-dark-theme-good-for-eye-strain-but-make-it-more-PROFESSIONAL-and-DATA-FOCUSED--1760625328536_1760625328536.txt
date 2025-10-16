@@ -1,0 +1,139 @@
+Keep the dark theme (good for eye strain), but make it more PROFESSIONAL and DATA-FOCUSED:
+
+═══════════════════════════════════════════════════════════════
+STYLING CHANGES (Keep Dark Theme)
+═══════════════════════════════════════════════════════════════
+
+KEEP:
+✅ Dark background (#1e1e1e or similar)
+✅ Light text on dark background
+✅ Current color scheme for backgrounds
+
+CHANGE TO BE MORE PROFESSIONAL:
+
+1. BUTTONS - Make them less "web app", more "terminal":
+   
+   Current red "Generate HMM Signal" button:
+   Change to: 
+   - Background: #2a2a2a (dark gray, not red)
+   - Border: 1px solid #555555
+   - Text: White or light gray
+   - border-radius: 0 (sharp corners, not rounded)
+   - Hover: Slightly lighter gray (#333333)
+   
+   Make ALL buttons follow this pattern - no colorful buttons!
+
+2. REMOVE ROUNDED CORNERS EVERYWHERE:
+   Add CSS: * { border-radius: 0 !important; }
+   
+   Every element should have sharp 90-degree corners:
+   - Buttons
+   - Input boxes  
+   - Info boxes
+   - Cards
+   - Tables
+
+3. SLIDERS - Make them more subtle:
+   Current: Bright red/colored sliders
+   Change to: Gray sliders that blend in
+   - Track: #3a3a3a
+   - Thumb: #555555
+   - Active: #666666
+   
+4. INFO BOXES - Less "notification", more "data panel":
+   Current: Blue rounded info boxes
+   Change to:
+   - Background: #252525
+   - Border: 1px solid #404040
+   - border-radius: 0
+   - No drop shadows
+   
+5. INCREASE DATA DENSITY:
+   - Reduce padding: 20px → 10px
+   - Reduce margins between sections: 30px → 12px
+   - Tighten line-height: 1.6 → 1.4
+   - Make tables more compact
+   - Less "breathing room" = more data visible
+
+6. TAB STYLING:
+   Make tabs look more utilitarian:
+   - Active tab: White text, thin 2px underline
+   - Inactive tabs: Gray text (#888888), no underline
+   - No background colors on tabs
+   - Font-weight: 500 (medium, not bold)
+
+═══════════════════════════════════════════════════════════════
+TAB REORDERING
+═══════════════════════════════════════════════════════════════
+
+CHANGE TAB ORDER TO:
+1. Small Cap Screener (first)
+2. HMM Trading Signals (second)
+3. Kelly Position Sizing (third)
+4. Combined Analytics (fourth)
+
+═══════════════════════════════════════════════════════════════
+ADDITIONAL PROFESSIONAL TOUCHES
+═══════════════════════════════════════════════════════════════
+
+1. STATUS BAR at bottom (professional apps have this):
+   Fixed bar at bottom showing:
+   "Ready | Last Updated: [timestamp] | Data Source: Yahoo Finance"
+   Style: Background #1a1a1a, text #888888, height 30px
+
+2. TYPOGRAPHY:
+   - Body text: 11pt (slightly smaller, more data-dense)
+   - Headers: 14pt (not too big)
+   - All text: font-weight 400 (normal, not bold unless header)
+   - Numbers: Consolas/Monaco monospace, right-aligned
+
+3. GRID LINES:
+   Add subtle grid lines to separate sections:
+   - Border color: #333333 (very subtle)
+   - 1px solid
+   - Creates "cells" like a terminal
+
+4. REMOVE STREAMLIT BRANDING:
+   - Hide hamburger menu (top right)
+   - Hide "Made with Streamlit" if visible
+   - Make it look like a standalone app
+
+═══════════════════════════════════════════════════════════════
+
+GOAL: "Dark Bloomberg Terminal" aesthetic
+- Professional and serious
+- Data-dense and utilitarian  
+- Easy on eyes for long sessions
+- No rounded corners or playful colors
+- All business, no frills
+
+Show me before/after screenshots.
+```
+
+---
+
+## 🎯 The Key Difference
+
+**My old advice:** "Make it look like Excel" (white, boring)
+**Your insight:** "Keep it dark, just make it more professional"
+**Better goal:** "Make it look like Bloomberg Terminal" (dark, professional, data-focused)
+
+---
+
+## 📊 Visual Comparison
+
+### **Current State:**
+```
+❌ Red rounded "Generate HMM Signal" button (too consumer-app)
+❌ Blue info boxes with rounded corners (too friendly)
+❌ Colorful sliders (too playful)
+❌ Lots of whitespace (too spacious)
+```
+
+### **Target State:**
+```
+✅ Dark gray sharp-edged buttons (terminal-like)
+✅ Dark gray panels with sharp borders (data-focused)
+✅ Subtle gray sliders (blend into background)
+✅ Dense layout (more data visible)
+✅ Still dark theme (easy on eyes) ✅
