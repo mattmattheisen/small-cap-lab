@@ -1,22 +1,61 @@
-# Trading Platform User Manual
+# small-cap lab User Manual
 
-## Welcome to Your Advanced Trading Analysis Platform
+## Welcome to small-cap lab
 
-This platform combines powerful market analysis tools to help you make better trading decisions. It uses advanced mathematical models and technical analysis to identify market trends and evaluate investment performance.
+small-cap lab is a professional trading analysis platform with a Dark Bloomberg Terminal aesthetic. It combines powerful market analysis tools to help you make better trading decisions using advanced mathematical models and technical analysis to identify market trends and optimize position sizing.
 
 ---
 
 ## Getting Started
 
 When you open the platform, you'll see four main tabs at the top:
-1. **HMM Trading Signals** - Get AI-powered buy/sell recommendations with Kelly preview
-2. **Kelly Position Sizing** - Calculate optimal position sizes for your trades
-3. **Combined Analytics** - Integrated HMM + Kelly analysis dashboard
-4. **Small Cap Stock Screener** - Find promising small-cap investment opportunities
+1. **Small Cap Stock Screener** - Find promising small-cap investment opportunities
+2. **HMM Trading Signals** - Get AI-powered buy/sell recommendations with Kelly preview
+3. **Kelly Position Sizing** - Calculate optimal position sizes for your trades
+4. **Combined Analytics** - Integrated HMM + Kelly analysis dashboard
+
+The interface features a professional dark theme optimized for traders and analysts.
 
 ---
 
-## Tab 1: HMM Trading Signals
+## Tab 1: Small Cap Stock Screener
+
+### What It Does
+This tool helps you discover promising small-cap stocks (market cap under $2B) using advanced fundamental analysis and scoring algorithms. It applies multiple filters for growth, profitability, and financial health.
+
+### How to Use It
+
+1. **Adjust Screening Criteria** in the sidebar:
+   - Market Cap Range (in millions)
+   - Growth Requirements (Revenue & EPS growth percentages)
+   - Financial Health (Debt/Equity ratio, Profit Margin)
+   - Valuation Metrics (Maximum PEG ratio)
+   - Liquidity Requirements (Minimum daily volume)
+
+2. **Click "Run Screener"**
+   - The system analyzes 200+ small-cap stocks
+   - Applies all your filters
+   - Scores each stock from 0-10
+
+3. **Review Results**
+   - Stocks are sorted by score (highest first)
+   - Export to CSV for further analysis
+
+### Understanding the Results
+
+Each stock is displayed with:
+- **Symbol & Name**: Stock ticker and company name
+- **Score**: Overall quality rating (0-10, higher is better)
+- **Market Cap**: Company size in millions
+- **Revenue Growth**: Year-over-year revenue increase
+- **EPS Growth**: Earnings per share growth
+- **Profit Margin**: Operating profitability
+- **Debt/Equity**: Financial leverage ratio
+- **PEG Ratio**: Price/Earnings to Growth (valuation metric)
+
+---
+
+## Tab 2: HMM Trading Signals
 
 ### What It Does
 This tool uses a Hidden Markov Model (a type of AI) to detect which "market regime" a stock is currently in, then combines that with candlestick pattern recognition to give you enhanced trading signals.
@@ -32,28 +71,28 @@ This tool uses a Hidden Markov Model (a type of AI) to detect which "market regi
    - Recommended: At least 3-6 months of data for reliable results
    - More data = better pattern recognition
 
-3. **Click "Analyze"**
+3. **Click "Generate HMM Signal"**
 
 ### Understanding Your Results
 
 #### Trading Signal Box
 You'll see one of these signals at the top:
 
-- **🟢 STRONG_BUY** - Both the AI model and candlestick patterns agree it's a good time to buy
+- **STRONG_BUY** - Both the AI model and candlestick patterns agree it's a good time to buy
   - Strength rating shows confidence (1-10 scale)
   - Higher numbers = stronger signal
 
-- **🔴 STRONG_SELL** - Both indicators agree it's time to sell
+- **STRONG_SELL** - Both indicators agree it's time to sell
   - Pay attention to the strength rating
 
-- **⚪ HOLD (Conflict)** - The AI and patterns disagree
+- **HOLD (Conflict)** - The AI and patterns disagree
   - This means wait for clearer signals
   - It's safer to hold than to trade on conflicting signals
 
-- **🟡 BUY (Cautious)** - Only the AI suggests buying
+- **BUY (Cautious)** - Only the AI suggests buying
   - Lower confidence, no pattern confirmation
 
-- **🟠 SELL (Cautious)** - Only the AI suggests selling
+- **SELL (Cautious)** - Only the AI suggests selling
   - Lower confidence, no pattern confirmation
 
 #### What the Reasoning Tells You
@@ -65,27 +104,27 @@ Below the signal, you'll see explanations like:
 #### Market Regime Analysis
 The platform identifies three market conditions:
 
-1. **Bull Market** 🐂
+1. **Bull Market**
    - Prices are generally rising
    - Good time to look for buying opportunities
-   - Average returns shown in green
+   - Average returns displayed in regime table
 
-2. **Sideways Market** ↔️
+2. **Sideways Market**
    - Market is flat or choppy
    - No clear trend
    - Be cautious with new positions
 
-3. **Bear Market** 🐻
+3. **Bear Market**
    - Prices are generally falling
    - Consider selling or waiting
-   - Average returns shown in red
+   - Average returns displayed in regime table
 
 #### Candlestick Pattern Analysis
 This section shows you:
 
 - **Current Pattern**: What pattern the stock just formed
-  - 🟢 Green = Bullish (upward) pattern
-  - 🔴 Red = Bearish (downward) pattern
+  - Bullish patterns indicate upward moves
+  - Bearish patterns indicate downward moves
   
 - **Direction**: Whether the pattern suggests up (+1) or down (-1)
 
@@ -127,24 +166,24 @@ At the bottom of the HMM results, you'll see a **Kelly Position Sizing Summary**
 - **Win Probability**: Combined probability of winning based on HMM regimes
 - **Full Kelly**: Optimal position size according to Kelly Criterion (%)
 - **Half Kelly**: Conservative position size (50% of Full Kelly) - **RECOMMENDED**
-- **Risk Level**: Visual indicator with emoji
-  - 🟢 Conservative (0-25%): Safe position sizing
-  - 🟡 Moderate (25-50%): Balanced approach - **OPTIMAL ZONE**
-  - 🟠 Aggressive (50-75%): Higher risk
-  - 🔴 Danger (75-100%): Very aggressive - **AVOID**
+- **Risk Level**: Visual risk indicator
+  - Conservative (0-25%): Safe position sizing
+  - Moderate (25-50%): Balanced approach - OPTIMAL ZONE
+  - Aggressive (50-75%): Higher risk
+  - Danger (75-100%): Very aggressive - AVOID
 
-💡 **Quick Tip**: This is a preview based on $100k portfolio and 5% stop loss. Visit the Kelly Position Sizing tab to customize for your actual portfolio.
+**Quick Tip**: This is a preview based on $100k portfolio and 5% stop loss. Visit the Kelly Position Sizing tab to customize for your actual portfolio.
 
 ### Pro Tips for HMM Signals
 
-✅ **Best Practices:**
+**Best Practices:**
 - Look for STRONG_BUY or STRONG_SELL with strength 7+ for highest confidence
 - Only trade Bull regimes with 75%+ confidence for conservative approach
 - Use HOLD signals as warnings to stay out of the market
 - Check the pattern history - frequently appearing patterns are more reliable
 - Always reference the Kelly summary for position sizing guidance
 
-⚠️ **Cautions:**
+**Cautions:**
 - No system is perfect - always manage your risk
 - Low confidence signals (below 60%) should be treated carefully
 - Sideways markets are unpredictable - smaller positions recommended
@@ -153,7 +192,7 @@ At the bottom of the HMM results, you'll see a **Kelly Position Sizing Summary**
 
 ---
 
-## Tab 2: Kelly Position Sizing
+## Tab 3: Kelly Position Sizing
 
 ### What Is Kelly Criterion?
 
@@ -232,22 +271,22 @@ Shows you:
 
 The gauge visually shows your position size with color-coded risk zones:
 
-- **🟢 Green Zone (0-25%)**: Conservative
+- **Green Zone (0-25%)**: Conservative
   - Safe for beginners
   - Lower returns but minimal risk
   - Good for uncertain markets
 
-- **🟡 Yellow Zone (25-50%)**: Moderate/Optimal
+- **Yellow Zone (25-50%)**: Moderate/Optimal
   - **IDEAL ZONE FOR MOST TRADERS**
   - Balances growth and safety
   - Half Kelly typically lands here
 
-- **🟠 Orange Zone (50-75%)**: Aggressive
+- **Orange Zone (50-75%)**: Aggressive
   - Higher risk of significant drawdowns
   - Only for experienced traders
   - Requires excellent risk management
 
-- **🔴 Red Zone (75-100%)**: Very Aggressive/Danger
+- **Red Zone (75-100%)**: Very Aggressive/Danger
   - **AVOID THIS ZONE**
   - Can lead to devastating losses
   - Even professionals don't use this
@@ -266,7 +305,7 @@ You'll see three key numbers:
 3. **Stop Loss Price**: Exact price to exit if trade fails
    - Protects your capital automatically
 
-### Critical Risk Warnings ⚠️
+### Critical Risk Warnings
 
 **Kelly Criterion Assumes Your Probabilities Are Accurate:**
 - If your win rate estimate is wrong, Kelly can over-leverage
@@ -293,7 +332,7 @@ You'll see three key numbers:
 
 ### Pro Tips for Different Strategies
 
-#### 🛡️ Conservative Small Cap Strategy
+#### Conservative Small Cap Strategy
 
 **Best for: Beginners, risk-averse traders, volatile markets**
 
@@ -304,18 +343,18 @@ You'll see three key numbers:
 - Maximum 3-5 positions at once
 - **Expected**: Lower returns, much lower risk
 
-#### ⚖️ Moderate Strategy (RECOMMENDED)
+#### Moderate Strategy (RECOMMENDED)
 
 **Best for: Most traders, balanced approach**
 
-- Use **Half Kelly (0.5x)** ✅
+- Use **Half Kelly (0.5x)**
 - Trade **Bull regimes with 65%+ confidence**
 - Require signal **strength 7+**
 - Set **3-5% stop-losses**
 - Maximum 5-8 positions
 - **Expected**: Good returns with manageable risk
 
-#### ⚡ Aggressive Strategy
+#### Aggressive Strategy
 
 **Best for: Experienced traders only, high risk tolerance**
 
@@ -331,23 +370,23 @@ You'll see three key numbers:
 
 The platform will show warnings when:
 
-⚠️ **Position Exceeds 20% of Portfolio**
+**Position Exceeds 20% of Portfolio**
 - Consider reducing to avoid concentration risk
 - Even if Kelly says higher, diversification matters
 - Suggests splitting into multiple positions
 
-⚠️ **Full Kelly Detected (1.0x multiplier)**
+**Full Kelly Detected (1.0x multiplier)**
 - Switch to Half Kelly (0.5x) for lower volatility
 - Full Kelly too aggressive for small caps
 - Reduce multiplier immediately
 
-⚠️ **Low Edge Detected (Kelly < 5%)**
+**Low Edge Detected (Kelly < 5%)**
 - Skip this trade - edge is too small
 - Transaction costs may eat profits
 - Wait for better opportunities
 - Focus on higher-conviction setups
 
-⚠️ **High Volatility Stock**
+**High Volatility Stock**
 - Use Quarter Kelly (0.25x) instead
 - Volatility can cause large swings
 - Smaller position = better sleep
@@ -355,7 +394,7 @@ The platform will show warnings when:
 
 ---
 
-## Tab 3: Combined Analytics
+## Tab 4: Combined Analytics
 
 ### What It Does
 
@@ -394,7 +433,7 @@ You'll see four key metrics:
    - Higher probability = stronger edge
 
 4. **Risk Level**:
-   - Visual indicator with emoji (🟢🟡🟠🔴)
+   - Visual indicator with emoji
    - Shows if position sizing is conservative/moderate/aggressive
 
 #### Regime-Specific Risk Analysis
@@ -417,20 +456,20 @@ This helps you understand which regimes are most common and most profitable.
 
 ### Pro Tips for Combined Analytics
 
-✅ **Best Practices:**
+**Best Practices:**
 - Look for alignment between signal and Kelly recommendations
 - High win probability + moderate Kelly = good setup
 - Use this tab for final decision before trading
 - Check regime persistence before entering trades
 
-⚠️ **Important Notes:**
+**Important Notes:**
 - This tab requires HMM analysis first
 - Data refreshes when you refresh HMM tab
 - Always cross-reference with individual tabs for details
 
 ---
 
-## Tab 4: Small Cap Stock Screener
+
 
 ### What It Does
 Helps you discover promising small-cap stocks (smaller companies) based on fundamental analysis criteria like growth, profitability, and valuation.
@@ -493,14 +532,14 @@ For each stock found, you can click "Quick Analysis" to see:
 
 ### Pro Tips for Stock Screener
 
-✅ **Best Practices:**
+**Best Practices:**
 - Start with conservative filters, then adjust
 - Look for stocks with both revenue AND earnings growth
 - Lower PEG ratios (<1.0) often indicate value opportunities
 - Check debt levels - high debt = higher risk
 - Verify volume is sufficient for your position size
 
-⚠️ **Cautions:**
+**Cautions:**
 - Small caps are riskier than large caps
 - Do additional research before investing
 - Some stocks may have data limitations
@@ -516,7 +555,7 @@ For each stock found, you can click "Quick Analysis" to see:
 Follow this systematic approach for best results:
 
 **Step 1: Run Screener → Find Candidates**
-- Use Tab 4 (Small Cap Screener) to find promising stocks
+- Use Tab 1 (Small Cap Screener) to find promising stocks
 - Look for strong growth metrics and reasonable valuations
 - Filter for adequate liquidity (volume)
 - Create a watchlist of 5-10 candidates
@@ -529,13 +568,13 @@ Follow this systematic approach for best results:
 - Eliminate stocks with HOLD or weak signals
 
 **Step 3: Kelly Tab → Fine-Tune Position Size**
-- Switch to Tab 2 (Kelly Position Sizing)
+- Switch to Tab 3 (Kelly Position Sizing)
 - Stock symbol auto-populates from HMM
 - Enter your actual portfolio value
 - Set appropriate stop-loss percentage (3-7%)
 - Choose fractional Kelly multiplier:
   - Beginners: 0.25x (Quarter Kelly)
-  - Most traders: 0.5x (Half Kelly) ✅
+  - Most traders: 0.5x (Half Kelly)
   - Experienced: 0.75x max
 - Review gauge - stay in Green or Yellow zones
 - Note exact position size and stop-loss price
@@ -572,7 +611,7 @@ If you see:
 ### Data Freshness & Caching
 
 - **Data cached for 1 hour** to prevent stale information
-- **Use 🔄 Refresh buttons** to force update:
+- **Use Refresh buttons** to force update:
   - Global refresh in sidebar (refreshes all tabs)
   - Per-tab refresh buttons (updates specific analysis)
 - **Market data from Yahoo Finance** (real-time during market hours)
@@ -642,13 +681,13 @@ This platform combines multiple advanced techniques:
 
 ### Important Reminders
 
-✅ **Kelly is POWERFUL but requires discipline:**
+**Kelly is POWERFUL but requires discipline:**
 - Always execute stop-losses at specified levels
 - Never override Kelly with emotions
 - Smaller fractional multipliers = safer trading
 - Green/Yellow gauge zones = optimal positioning
 
-⚠️ **This is NOT financial advice:**
+**This is NOT financial advice:**
 - Platform provides analysis tools, not trading recommendations
 - You are responsible for your own trading decisions
 - Past performance doesn't guarantee future results
@@ -660,7 +699,7 @@ This platform combines multiple advanced techniques:
 
 ## Download This Manual
 
-Click the **"📥 Download User Manual"** button in the sidebar to save this guide as a PDF for offline reference.
+Click the **"Download User Manual"** button in the sidebar to save this guide as a PDF for offline reference.
 
 ---
 
