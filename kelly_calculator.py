@@ -188,7 +188,7 @@ class KellyCalculator:
     ) -> Tuple[float, Dict]:
         """
         Calculate win probability using hybrid approach:
-        p_win = (bull_prob × bull_win_rate) + (sideways_prob × sideways_win_rate)
+        p_win = (bull_prob * bull_win_rate) + (sideways_prob * sideways_win_rate)
         
         Args:
             regime_stats: Dictionary with regime statistics
@@ -456,46 +456,46 @@ class KellyCalculator:
             return {
                 'level': 'Conservative',
                 'color': 'green',
-                'emoji': '🟢',
+                'emoji': '',
                 'description': 'Safe, lower growth potential'
             }
         elif pct <= 50:
             return {
                 'level': 'Moderate',
                 'color': 'yellow',
-                'emoji': '🟡',
+                'emoji': '',
                 'description': 'OPTIMAL ZONE - Half Kelly recommended'
             }
         elif pct <= 75:
             return {
                 'level': 'Aggressive',
                 'color': 'orange',
-                'emoji': '🟠',
+                'emoji': '',
                 'description': 'Higher risk, higher volatility'
             }
         else:
             return {
                 'level': 'Very Aggressive',
                 'color': 'red',
-                'emoji': '🔴',
+                'emoji': '',
                 'description': 'Danger zone - excessive risk'
             }
     
     def get_recommendation(self, kelly_fraction: float, applied_fraction: float) -> str:
         """Generate recommendation text"""
         if kelly_fraction <= 0:
-            return "⚠️ No edge detected - avoid position or wait for better setup"
+            return "No edge detected - avoid position or wait for better setup"
         
         applied_kelly = kelly_fraction * applied_fraction
         
         if applied_kelly > 0.75:
-            return "🛑 Position too aggressive - consider reducing to 25-50% range"
+            return "Position too aggressive - consider reducing to 25-50% range"
         elif applied_kelly > 0.5:
-            return "⚠️ Above optimal zone - consider using Half Kelly (0.5x) for lower volatility"
+            return "Above optimal zone - consider using Half Kelly (0.5x) for lower volatility"
         elif applied_kelly >= 0.25:
-            return "✅ In optimal zone - Half Kelly provides good growth with manageable risk"
+            return "In optimal zone - Half Kelly provides good growth with manageable risk"
         else:
-            return "💡 Conservative sizing - safe but slower growth potential"
+            return "Conservative sizing - safe but slower growth potential"
     
     def calculate_manual_kelly(
         self,

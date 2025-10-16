@@ -24,7 +24,6 @@ from dark_terminal_styles import (
 # Page configuration
 st.set_page_config(
     page_title="Trading Platform - HMM & Sharpe Analysis",
-    page_icon="🚀",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -63,7 +62,7 @@ def main():
             # Reinitialize screener to rotate stock universe
             if 'small_cap_screener' in st.session_state:
                 del st.session_state.small_cap_screener
-            st.toast("All data cache cleared! Screener universe rotated!", icon="✅")
+            st.toast("All data cache cleared! Screener universe rotated!")
             st.rerun()
         
         st.markdown("---")
@@ -467,7 +466,7 @@ def display_hmm_results(signal_info, regime_stats, data, states, features):
                 ), unsafe_allow_html=True)
         
         # Info note
-        st.info("Based on $100k portfolio with 5% stop loss and Half Kelly (0.5x). Includes transaction costs and edge decay. Customize in Kelly Position Sizing tab →")
+        st.info("Based on $100k portfolio with 5% stop loss and Half Kelly (0.5x). Includes transaction costs and edge decay. Customize in Kelly Position Sizing tab")
         
     except Exception as e:
         st.warning(f"Kelly summary unavailable: {str(e)}")
@@ -499,13 +498,11 @@ def create_kelly_gauge(applied_kelly_pct, full_kelly_pct=None):
         }
     ))
     
-    # Apply dark layout
+    # Apply dark layout (dark_layout already contains margin, so override it properly)
     dark_layout = get_dark_chart_layout()
-    fig.update_layout(
-        **dark_layout,
-        height=300,
-        margin=dict(l=20, r=20, t=50, b=20)
-    )
+    dark_layout['height'] = 300
+    dark_layout['margin'] = dict(l=20, r=20, t=50, b=20)  # Override margin for gauge
+    fig.update_layout(**dark_layout)
     
     return fig
 
@@ -527,7 +524,7 @@ def kelly_position_sizing():
         )
     else:
         mode = "Manual Input"
-        st.warning("💡 Run HMM analysis first to auto-populate Kelly calculations from regime data")
+        st.warning("Run HMM analysis first to auto-populate Kelly calculations from regime data")
     
     if mode == "Use HMM Results" and has_hmm_results:
         kelly_from_hmm()
@@ -598,7 +595,7 @@ def kelly_from_hmm():
 
 def kelly_manual_input():
     """Manual Kelly calculation"""
-    st.subheader("✏️ Manual Kelly Input")
+    st.subheader("Manual Kelly Input")
     
     col1, col2 = st.columns(2)
     
@@ -731,10 +728,10 @@ def display_kelly_results(results):
             net_edge_text = f"{net_edge:.2f}%"
             if tradeable:
                 is_positive = True
-                text = f"{net_edge_text} ✓"
+                text = net_edge_text
             else:
                 is_positive = False
-                text = f"{net_edge_text} ✗"
+                text = net_edge_text
             st.markdown(create_dark_metric_table("Net Edge", text, is_positive=is_positive), unsafe_allow_html=True)
         
         with col4:

@@ -46,6 +46,10 @@ def get_dark_terminal_styles():
     }
     
     /* Main App Background */
+    body {
+        background-color: var(--bg-main) !important;
+    }
+    
     .stApp {
         background-color: var(--bg-main) !important;
     }

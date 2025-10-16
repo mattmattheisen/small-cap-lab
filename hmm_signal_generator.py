@@ -20,7 +20,7 @@ class HMMSignalGenerator:
         self.scaler = StandardScaler()
         self.regime_names = {0: 'Bear', 1: 'Sideways', 2: 'Bull'}
         self.regime_colors = {0: '#dc3545', 1: '#ffc107', 2: '#28a745'}
-        self.regime_icons = {0: '📉', 1: '➡️', 2: '📈'}
+        self.regime_icons = {0: '', 1: '', 2: ''}
     
     def prepare_features(self, data):
         """Feature preparation with error handling"""
