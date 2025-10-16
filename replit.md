@@ -1,4 +1,4 @@
-# Trading Platform - HMM & Kelly Criterion Analysis
+# small-cap lab - HMM & Kelly Criterion Analysis
 
 ## Overview
 

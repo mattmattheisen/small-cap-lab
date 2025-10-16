@@ -1,5 +1,5 @@
 """
-Comprehensive Trading Platform
+small-cap lab
 Combining HMM Regime Detection with Sharpe Ratio Analysis
 """
 
@@ -23,7 +23,7 @@ from dark_terminal_styles import (
 
 # Page configuration
 st.set_page_config(
-    page_title="Trading Platform - HMM & Sharpe Analysis",
+    page_title="small-cap lab",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -33,7 +33,7 @@ def main():
     st.markdown(get_dark_terminal_styles(), unsafe_allow_html=True)
     
     # Header
-    st.title("Advanced Trading Platform")
+    st.title("small-cap lab")
     st.markdown("**Hidden Markov Model Regime Detection + Kelly Criterion Position Sizing**")
     
     # Sidebar - User Manual Download and Global Refresh
