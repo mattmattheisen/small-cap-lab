@@ -8,6 +8,38 @@ from datetime import datetime
 def get_dark_terminal_styles():
     """Return Dark Bloomberg Terminal CSS"""
     return """
+    <script>
+    // Remove keyboard shortcut tooltips dynamically
+    function removeTooltips() {
+        // Remove all tooltip elements
+        const tooltips = document.querySelectorAll('[role="tooltip"], [data-baseweb="tooltip"], [class*="tooltip"], [class*="Tooltip"]');
+        tooltips.forEach(el => el.remove());
+        
+        // Remove title attributes that contain keyboard shortcuts
+        const elementsWithTitle = document.querySelectorAll('[title*="["], [title*="keyboard"], [aria-label*="keyboard"]');
+        elementsWithTitle.forEach(el => {
+            if (el.title && (el.title.includes('[') || el.title.toLowerCase().includes('keyboard'))) {
+                el.removeAttribute('title');
+            }
+            if (el.getAttribute('aria-label') && el.getAttribute('aria-label').toLowerCase().includes('keyboard')) {
+                el.removeAttribute('aria-label');
+            }
+        });
+    }
+    
+    // Run immediately
+    removeTooltips();
+    
+    // Run continuously to catch dynamically added tooltips
+    setInterval(removeTooltips, 300);
+    
+    // Also monitor DOM changes
+    if (typeof MutationObserver !== 'undefined') {
+        const observer = new MutationObserver(removeTooltips);
+        observer.observe(document.body, { childList: true, subtree: true });
+    }
+    </script>
+    
     <style>
     /* Dark Bloomberg Terminal Color Scheme */
     :root {
@@ -54,17 +86,37 @@ def get_dark_terminal_styles():
     [data-testid="stTooltipIcon"],
     [data-baseweb="tooltip"],
     button[title*="["],
-    button[aria-label*="["] {
+    button[aria-label*="["],
+    div[data-testid="stTooltipHoverTarget"],
+    div[role="tooltip"],
+    [class*="Tooltip"],
+    [class*="tooltip"],
+    [id*="tooltip"] {
         display: none !important;
         visibility: hidden !important;
         opacity: 0 !important;
         pointer-events: none !important;
+        width: 0 !important;
+        height: 0 !important;
+    }
+    
+    /* Completely remove tooltips from the DOM */
+    body > div[role="tooltip"],
+    body > div[data-baseweb="tooltip"],
+    .stApp > div[role="tooltip"] {
+        display: none !important;
     }
     
     /* Remove keyboard shortcut text from button titles */
     button[title]::after,
     button[aria-label]::after {
         content: none !important;
+    }
+    
+    /* Hide the sidebar navigation keyboard shortcut hint */
+    section[data-testid="stSidebar"] button[kind="header"],
+    section[data-testid="stSidebar"] button[kind="headerNoPadding"] {
+        display: none !important;
     }
     
     /* Main App Background */
