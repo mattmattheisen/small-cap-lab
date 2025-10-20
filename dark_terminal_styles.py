@@ -8,41 +8,6 @@ from datetime import datetime
 def get_dark_terminal_styles():
     """Return Dark Bloomberg Terminal CSS"""
     return """
-    <script>
-    // Remove keyboard shortcut tooltips dynamically (but preserve button functionality)
-    function removeTooltips() {
-        // Only remove tooltip popups, not buttons
-        const tooltips = document.querySelectorAll('[role="tooltip"]:not(button), [data-baseweb="tooltip"]:not(button)');
-        tooltips.forEach(el => {
-            // Don't remove if it's inside a button or is a button
-            if (!el.closest('button') && el.tagName !== 'BUTTON') {
-                el.remove();
-            }
-        });
-        
-        // Remove title attributes that contain keyboard shortcuts, but preserve button titles
-        const elementsWithTitle = document.querySelectorAll('[title*="["], [title*="keyboard"]');
-        elementsWithTitle.forEach(el => {
-            // Don't modify button elements to preserve click functionality
-            if (el.tagName !== 'BUTTON' && !el.closest('button')) {
-                if (el.title && (el.title.includes('[') || el.title.toLowerCase().includes('keyboard'))) {
-                    el.removeAttribute('title');
-                }
-            }
-        });
-    }
-    
-    // Run after page load
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', removeTooltips);
-    } else {
-        removeTooltips();
-    }
-    
-    // Run periodically but less aggressively
-    setInterval(removeTooltips, 1000);
-    </script>
-    
     <style>
     /* Dark Bloomberg Terminal Color Scheme */
     :root {
@@ -80,22 +45,23 @@ def get_dark_terminal_styles():
         border-radius: 0 !important;
     }
     
-    /* Hide tooltips but preserve button functionality */
-    div[role="tooltip"]:not(.stButton):not(button *),
-    div[data-baseweb="tooltip"]:not(.stButton):not(button *),
-    .stTooltipIcon:not(.stButton):not(button *),
-    [data-testid="stTooltipIcon"]:not(.stButton):not(button *) {
+    /* Hide all tooltip popups but NOT toasts */
+    div[role="tooltip"],
+    div[data-baseweb="tooltip"],
+    .stTooltipIcon,
+    [data-testid="stTooltipIcon"] {
         display: none !important;
         visibility: hidden !important;
     }
     
-    /* Ensure all buttons remain clickable */
-    .stButton button,
-    .stDownloadButton button,
-    button[kind="primary"],
-    button[kind="secondary"] {
-        pointer-events: auto !important;
-        cursor: pointer !important;
+    /* Ensure toast notifications are always visible */
+    div[data-testid="stToast"],
+    .stToast,
+    div[data-baseweb="toast"] {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        z-index: 9999 !important;
     }
     
     /* Main App Background */
@@ -317,8 +283,9 @@ def get_dark_terminal_styles():
     
     /* Remove Streamlit Branding */
     #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
+    footer[data-testid="stDecoration"] {visibility: hidden;}
+    footer.stApp {visibility: hidden;}
+    header[data-testid="stHeader"] {visibility: hidden;}
     
     /* Fixed Status Bar */
     .status-bar {
@@ -352,6 +319,32 @@ def get_dark_terminal_styles():
         border: 1px solid var(--button-border) !important;
         color: var(--text-primary) !important;
         border-radius: 0 !important;
+        min-height: 38px !important;
+        height: auto !important;
+        padding: 8px 16px !important;
+        display: inline-block !important;
+        line-height: normal !important;
+        font-size: 11pt !important;
+    }
+    
+    /* Force sidebar buttons to be visible */
+    section[data-testid="stSidebar"] .stDownloadButton,
+    section[data-testid="stSidebar"] .stButton {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        min-height: 38px !important;
+    }
+    
+    section[data-testid="stSidebar"] .stDownloadButton > button,
+    section[data-testid="stSidebar"] .stButton > button {
+        display: inline-block !important;
+        min-height: 38px !important;
+        height: auto !important;
+        line-height: normal !important;
+        font-size: 11pt !important;
+        visibility: visible !important;
+        opacity: 1 !important;
     }
     
     /* Selectbox */
