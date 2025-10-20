@@ -57,10 +57,19 @@ def get_dark_terminal_styles():
     /* Sidebar */
     section[data-testid="stSidebar"] {
         background-color: var(--bg-sidebar) !important;
+        overflow: hidden !important;
     }
     
     section[data-testid="stSidebar"] > div {
         background-color: var(--bg-sidebar) !important;
+        padding-top: 2rem !important;
+        text-align: left !important;
+    }
+    
+    /* Hide any overflow content at top of sidebar */
+    section[data-testid="stSidebar"] > div:first-child {
+        overflow: hidden !important;
+        position: relative !important;
     }
     
     /* All Text */
