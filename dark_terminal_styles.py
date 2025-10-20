@@ -45,6 +45,18 @@ def get_dark_terminal_styles():
         border-radius: 0 !important;
     }
     
+    /* Hide ALL keyboard shortcut hints globally */
+    [title*="keyboard"],
+    [title*="Keyboard"],
+    [aria-label*="keyboard"],
+    [aria-label*="Keyboard"],
+    .stTooltipIcon,
+    [data-testid="stTooltipIcon"] {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+    }
+    
     /* Main App Background */
     body {
         background-color: var(--bg-main) !important;
@@ -70,6 +82,17 @@ def get_dark_terminal_styles():
     section[data-testid="stSidebar"] > div:first-child {
         overflow: hidden !important;
         position: relative !important;
+    }
+    
+    /* Hide all tooltips and keyboard shortcuts in sidebar */
+    section[data-testid="stSidebar"] [data-testid="stTooltipIcon"],
+    section[data-testid="stSidebar"] .stTooltip,
+    section[data-testid="stSidebar"] [title*="keyboard"],
+    section[data-testid="stSidebar"] [title*="Keyboard"],
+    section[data-testid="stSidebar"] [aria-label*="keyboard"],
+    section[data-testid="stSidebar"] [aria-label*="Keyboard"] {
+        display: none !important;
+        visibility: hidden !important;
     }
     
     /* All Text */
