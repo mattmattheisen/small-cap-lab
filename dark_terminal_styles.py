@@ -9,35 +9,38 @@ def get_dark_terminal_styles():
     """Return Dark Bloomberg Terminal CSS"""
     return """
     <script>
-    // Remove keyboard shortcut tooltips dynamically
+    // Remove keyboard shortcut tooltips dynamically (but preserve button functionality)
     function removeTooltips() {
-        // Remove all tooltip elements
-        const tooltips = document.querySelectorAll('[role="tooltip"], [data-baseweb="tooltip"], [class*="tooltip"], [class*="Tooltip"]');
-        tooltips.forEach(el => el.remove());
-        
-        // Remove title attributes that contain keyboard shortcuts
-        const elementsWithTitle = document.querySelectorAll('[title*="["], [title*="keyboard"], [aria-label*="keyboard"]');
-        elementsWithTitle.forEach(el => {
-            if (el.title && (el.title.includes('[') || el.title.toLowerCase().includes('keyboard'))) {
-                el.removeAttribute('title');
+        // Only remove tooltip popups, not buttons
+        const tooltips = document.querySelectorAll('[role="tooltip"]:not(button), [data-baseweb="tooltip"]:not(button)');
+        tooltips.forEach(el => {
+            // Don't remove if it's inside a button or is a button
+            if (!el.closest('button') && el.tagName !== 'BUTTON') {
+                el.remove();
             }
-            if (el.getAttribute('aria-label') && el.getAttribute('aria-label').toLowerCase().includes('keyboard')) {
-                el.removeAttribute('aria-label');
+        });
+        
+        // Remove title attributes that contain keyboard shortcuts, but preserve button titles
+        const elementsWithTitle = document.querySelectorAll('[title*="["], [title*="keyboard"]');
+        elementsWithTitle.forEach(el => {
+            // Don't modify button elements to preserve click functionality
+            if (el.tagName !== 'BUTTON' && !el.closest('button')) {
+                if (el.title && (el.title.includes('[') || el.title.toLowerCase().includes('keyboard'))) {
+                    el.removeAttribute('title');
+                }
             }
         });
     }
     
-    // Run immediately
-    removeTooltips();
-    
-    // Run continuously to catch dynamically added tooltips
-    setInterval(removeTooltips, 300);
-    
-    // Also monitor DOM changes
-    if (typeof MutationObserver !== 'undefined') {
-        const observer = new MutationObserver(removeTooltips);
-        observer.observe(document.body, { childList: true, subtree: true });
+    // Run after page load
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', removeTooltips);
+    } else {
+        removeTooltips();
     }
+    
+    // Run periodically but less aggressively
+    setInterval(removeTooltips, 1000);
     </script>
     
     <style>
@@ -77,46 +80,22 @@ def get_dark_terminal_styles():
         border-radius: 0 !important;
     }
     
-    /* Hide ALL keyboard shortcut hints and tooltips globally */
-    [title*="keyboard"],
-    [title*="Keyboard"],
-    [aria-label*="keyboard"],
-    [aria-label*="Keyboard"],
-    .stTooltipIcon,
-    [data-testid="stTooltipIcon"],
-    [data-baseweb="tooltip"],
-    button[title*="["],
-    button[aria-label*="["],
-    div[data-testid="stTooltipHoverTarget"],
-    div[role="tooltip"],
-    [class*="Tooltip"],
-    [class*="tooltip"],
-    [id*="tooltip"] {
+    /* Hide tooltips but preserve button functionality */
+    div[role="tooltip"]:not(.stButton):not(button *),
+    div[data-baseweb="tooltip"]:not(.stButton):not(button *),
+    .stTooltipIcon:not(.stButton):not(button *),
+    [data-testid="stTooltipIcon"]:not(.stButton):not(button *) {
         display: none !important;
         visibility: hidden !important;
-        opacity: 0 !important;
-        pointer-events: none !important;
-        width: 0 !important;
-        height: 0 !important;
     }
     
-    /* Completely remove tooltips from the DOM */
-    body > div[role="tooltip"],
-    body > div[data-baseweb="tooltip"],
-    .stApp > div[role="tooltip"] {
-        display: none !important;
-    }
-    
-    /* Remove keyboard shortcut text from button titles */
-    button[title]::after,
-    button[aria-label]::after {
-        content: none !important;
-    }
-    
-    /* Hide the sidebar navigation keyboard shortcut hint */
-    section[data-testid="stSidebar"] button[kind="header"],
-    section[data-testid="stSidebar"] button[kind="headerNoPadding"] {
-        display: none !important;
+    /* Ensure all buttons remain clickable */
+    .stButton button,
+    .stDownloadButton button,
+    button[kind="primary"],
+    button[kind="secondary"] {
+        pointer-events: auto !important;
+        cursor: pointer !important;
     }
     
     /* Main App Background */
