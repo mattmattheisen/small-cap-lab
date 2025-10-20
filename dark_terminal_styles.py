@@ -45,16 +45,26 @@ def get_dark_terminal_styles():
         border-radius: 0 !important;
     }
     
-    /* Hide ALL keyboard shortcut hints globally */
+    /* Hide ALL keyboard shortcut hints and tooltips globally */
     [title*="keyboard"],
     [title*="Keyboard"],
     [aria-label*="keyboard"],
     [aria-label*="Keyboard"],
     .stTooltipIcon,
-    [data-testid="stTooltipIcon"] {
+    [data-testid="stTooltipIcon"],
+    [data-baseweb="tooltip"],
+    button[title*="["],
+    button[aria-label*="["] {
         display: none !important;
         visibility: hidden !important;
         opacity: 0 !important;
+        pointer-events: none !important;
+    }
+    
+    /* Remove keyboard shortcut text from button titles */
+    button[title]::after,
+    button[aria-label]::after {
+        content: none !important;
     }
     
     /* Main App Background */
@@ -69,30 +79,11 @@ def get_dark_terminal_styles():
     /* Sidebar */
     section[data-testid="stSidebar"] {
         background-color: var(--bg-sidebar) !important;
-        overflow: hidden !important;
     }
     
     section[data-testid="stSidebar"] > div {
         background-color: var(--bg-sidebar) !important;
-        padding-top: 2rem !important;
         text-align: left !important;
-    }
-    
-    /* Hide any overflow content at top of sidebar */
-    section[data-testid="stSidebar"] > div:first-child {
-        overflow: hidden !important;
-        position: relative !important;
-    }
-    
-    /* Hide all tooltips and keyboard shortcuts in sidebar */
-    section[data-testid="stSidebar"] [data-testid="stTooltipIcon"],
-    section[data-testid="stSidebar"] .stTooltip,
-    section[data-testid="stSidebar"] [title*="keyboard"],
-    section[data-testid="stSidebar"] [title*="Keyboard"],
-    section[data-testid="stSidebar"] [aria-label*="keyboard"],
-    section[data-testid="stSidebar"] [aria-label*="Keyboard"] {
-        display: none !important;
-        visibility: hidden !important;
     }
     
     /* All Text */
