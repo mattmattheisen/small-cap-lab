@@ -6,6 +6,22 @@ This is a comprehensive trading platform built with Streamlit that combines Hidd
 
 ## Recent Changes
 
+**October 21, 2025 - Sidebar Button Accessibility & Keyboard Shortcut Fixes:**
+- **Button Visibility Fix**: Added explicit CSS to ensure sidebar buttons (Download User Manual, Refresh All Data) have proper dimensions and are clickable
+  - Set `min-height: 38px` on all sidebar buttons
+  - Fixed `footer {visibility: hidden}` issue that was hiding button containers
+  - Changed to specific `footer[data-testid="stDecoration"]` targeting
+- **Keyboard Shortcut Removal**: Implemented targeted JavaScript to remove keyboard shortcut text from sidebar
+  - Runs every 500ms to catch dynamically added elements
+  - Only targets sidebar header collapse buttons
+  - Preserves all other functionality including button clicks
+- **Streamlit Configuration Updates**: 
+  - Set `hideTopBar = true` to remove top navigation bar
+  - Set `showErrorDetails = false` for cleaner production appearance
+  - Added `fastReruns = true` for better performance
+- **Toast Notifications**: Added explicit CSS to ensure toast messages are always visible (not hidden by tooltip CSS)
+- **Issue**: Published deployment buttons work correctly in development but may require cache clearing in production
+
 **October 16, 2025 - Dark Bloomberg Terminal UI Transformation:**
 - **Complete Dark Theme Implementation**: Transformed entire UI to professional Dark Bloomberg Terminal aesthetic
 - **Dark Color Scheme**: Consistent dark backgrounds throughout
