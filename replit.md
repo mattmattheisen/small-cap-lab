@@ -6,19 +6,13 @@ This is a comprehensive trading platform built with Streamlit that combines Hidd
 
 ## Recent Changes
 
-**October 21, 2025 - Sidebar Button Visibility Complete Rewrite:**
-- **Root Cause Identified**: Footer hiding CSS was blocking Streamlit button containers
-- **Complete CSS Refactor**:
-  - Removed ALL footer hiding CSS (previously `footer[data-testid="stDecoration"]` and `footer.stApp`)
-  - Only hiding `#MainMenu` and `header[data-testid="stHeader"]` now
-  - Added explicit forced visibility CSS for sidebar buttons with `min-height: 40px`
-  - Added `pointer-events: auto !important` to ensure clickability
-  - Removed aggressive JavaScript that was hiding elements containing "[" characters
-- **Code Structure Change**:
-  - Changed from `with st.sidebar:` context manager to explicit `st.sidebar.` method calls
-  - Added unique keys to both buttons (`download_manual_btn`, `refresh_data_btn`)
-- **CSS Specificity**: Added targeted rules for `section[data-testid="stSidebar"] .stButton` and `.stDownloadButton`
-- **Development Status**: Buttons working in dev environment; production may need hard refresh (Ctrl+Shift+R) or cache clear
+**October 21, 2025 - Sidebar Button Visibility FIXED:**
+- **Root Cause**: CSS `display: inline-block !important` override was breaking Streamlit's BaseWeb inline-flex layout, collapsing buttons to 0×0 pixels
+- **Solution**: Removed all display/layout overrides; kept only color/border styling
+- **Sidebar Visibility**: Added `transform: none !important` to prevent sidebar collapse
+- **Code Structure**: Changed from `with st.sidebar:` to explicit `st.sidebar.download_button()` and `st.sidebar.button()` with unique keys
+- **Testing**: E2E tests confirm both buttons are visible, clickable, and functional
+- **Status**: ✅ WORKING - Both "Download User Manual" and "Refresh All Data" buttons fully functional
 
 **October 16, 2025 - Dark Bloomberg Terminal UI Transformation:**
 - **Complete Dark Theme Implementation**: Transformed entire UI to professional Dark Bloomberg Terminal aesthetic

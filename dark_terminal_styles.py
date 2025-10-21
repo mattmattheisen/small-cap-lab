@@ -73,14 +73,17 @@ def get_dark_terminal_styles():
         background-color: var(--bg-main) !important;
     }
     
-    /* Sidebar */
+    /* Sidebar - Force Visible and Expanded */
     section[data-testid="stSidebar"] {
         background-color: var(--bg-sidebar) !important;
+        transform: none !important;
+        visibility: visible !important;
     }
     
     section[data-testid="stSidebar"] > div {
         background-color: var(--bg-sidebar) !important;
         text-align: left !important;
+        transform: none !important;
     }
     
     /* All Text */
@@ -317,30 +320,6 @@ def get_dark_terminal_styles():
         border: 1px solid var(--button-border) !important;
         color: var(--text-primary) !important;
         padding: 8px 16px !important;
-        min-height: 40px !important;
-        display: inline-block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-    }
-    
-    /* Force sidebar buttons to be visible */
-    section[data-testid="stSidebar"] .stButton,
-    section[data-testid="stSidebar"] .stDownloadButton {
-        display: block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        height: auto !important;
-        min-height: 40px !important;
-    }
-    
-    section[data-testid="stSidebar"] .stButton > button,
-    section[data-testid="stSidebar"] .stDownloadButton > button {
-        display: inline-block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        min-height: 40px !important;
-        height: auto !important;
-        pointer-events: auto !important;
     }
     
     /* Selectbox */
