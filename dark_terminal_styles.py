@@ -8,38 +8,6 @@ from datetime import datetime
 def get_dark_terminal_styles():
     """Return Dark Bloomberg Terminal CSS"""
     return """
-    <script>
-    // Remove keyboard shortcuts from sidebar collapse button only
-    setInterval(function() {
-        // Target only sidebar header buttons that show keyboard shortcuts
-        const sidebar = document.querySelector('section[data-testid="stSidebar"]');
-        if (sidebar) {
-            const buttons = sidebar.querySelectorAll('button[kind="header"], button[kind="headerNoPadding"]');
-            buttons.forEach(btn => {
-                // Hide text nodes containing brackets (keyboard shortcuts)
-                Array.from(btn.childNodes).forEach(node => {
-                    if (node.nodeType === 3 && node.textContent.includes('[')) { // Text node
-                        node.textContent = '';
-                    }
-                });
-                // Also check spans
-                btn.querySelectorAll('span').forEach(span => {
-                    if (span.textContent.includes('[') || span.textContent.toLowerCase().includes('keyboard')) {
-                        span.style.display = 'none';
-                    }
-                });
-            });
-        }
-        
-        // Remove tooltip popups
-        document.querySelectorAll('[role="tooltip"]').forEach(el => {
-            if (!el.hasAttribute('data-testid') || el.getAttribute('data-testid') !== 'stToast') {
-                el.remove();
-            }
-        });
-    }, 500);
-    </script>
-    
     <style>
     /* Dark Bloomberg Terminal Color Scheme */
     :root {
@@ -315,8 +283,6 @@ def get_dark_terminal_styles():
     
     /* Remove Streamlit Branding */
     #MainMenu {visibility: hidden;}
-    footer[data-testid="stDecoration"] {visibility: hidden;}
-    footer.stApp {visibility: hidden;}
     header[data-testid="stHeader"] {visibility: hidden;}
     
     /* Fixed Status Bar */
@@ -350,33 +316,7 @@ def get_dark_terminal_styles():
         background-color: var(--button-bg) !important;
         border: 1px solid var(--button-border) !important;
         color: var(--text-primary) !important;
-        border-radius: 0 !important;
-        min-height: 38px !important;
-        height: auto !important;
         padding: 8px 16px !important;
-        display: inline-block !important;
-        line-height: normal !important;
-        font-size: 11pt !important;
-    }
-    
-    /* Force sidebar buttons to be visible */
-    section[data-testid="stSidebar"] .stDownloadButton,
-    section[data-testid="stSidebar"] .stButton {
-        display: block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        min-height: 38px !important;
-    }
-    
-    section[data-testid="stSidebar"] .stDownloadButton > button,
-    section[data-testid="stSidebar"] .stButton > button {
-        display: inline-block !important;
-        min-height: 38px !important;
-        height: auto !important;
-        line-height: normal !important;
-        font-size: 11pt !important;
-        visibility: visible !important;
-        opacity: 1 !important;
     }
     
     /* Selectbox */
