@@ -6,6 +6,10 @@ port = 5000
 [client]
 showSidebarNavigation = false
 toolbarMode = "minimal"
+showErrorDetails = false
 
 [ui]
-hideTopBar = false
+hideTopBar = true
+
+[runner]
+fastReruns = true

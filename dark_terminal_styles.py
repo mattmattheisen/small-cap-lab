@@ -8,6 +8,38 @@ from datetime import datetime
 def get_dark_terminal_styles():
     """Return Dark Bloomberg Terminal CSS"""
     return """
+    <script>
+    // Remove keyboard shortcuts from sidebar collapse button only
+    setInterval(function() {
+        // Target only sidebar header buttons that show keyboard shortcuts
+        const sidebar = document.querySelector('section[data-testid="stSidebar"]');
+        if (sidebar) {
+            const buttons = sidebar.querySelectorAll('button[kind="header"], button[kind="headerNoPadding"]');
+            buttons.forEach(btn => {
+                // Hide text nodes containing brackets (keyboard shortcuts)
+                Array.from(btn.childNodes).forEach(node => {
+                    if (node.nodeType === 3 && node.textContent.includes('[')) { // Text node
+                        node.textContent = '';
+                    }
+                });
+                // Also check spans
+                btn.querySelectorAll('span').forEach(span => {
+                    if (span.textContent.includes('[') || span.textContent.toLowerCase().includes('keyboard')) {
+                        span.style.display = 'none';
+                    }
+                });
+            });
+        }
+        
+        // Remove tooltip popups
+        document.querySelectorAll('[role="tooltip"]').forEach(el => {
+            if (!el.hasAttribute('data-testid') || el.getAttribute('data-testid') !== 'stToast') {
+                el.remove();
+            }
+        });
+    }, 500);
+    </script>
+    
     <style>
     /* Dark Bloomberg Terminal Color Scheme */
     :root {
