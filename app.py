@@ -36,37 +36,6 @@ def main():
     st.title("small-cap lab")
     st.markdown("**Hidden Markov Model Regime Detection + Kelly Criterion Position Sizing**")
     
-    # Sidebar - User Manual Download and Global Refresh
-    st.sidebar.markdown("### User Manual")
-    
-    try:
-        with open("USER_MANUAL.md", "r") as f:
-            manual_content = f.read()
-        
-        st.sidebar.download_button(
-            label="Download User Manual",
-            data=manual_content,
-            file_name="Trading_Platform_User_Manual.md",
-            mime="text/markdown",
-            help="Download the complete user manual for this trading platform",
-            key="download_manual_btn"
-        )
-    except Exception as e:
-        st.sidebar.error(f"Unable to load manual: {e}")
-    
-    st.sidebar.markdown("---")
-    
-    st.sidebar.markdown("### Data Refresh")
-    if st.sidebar.button("Refresh All Data", help="Clear all cached data and rotate screener universe", key="refresh_data_btn"):
-        clear_stock_data_cache()
-        # Reinitialize screener to rotate stock universe
-        if 'small_cap_screener' in st.session_state:
-            del st.session_state.small_cap_screener
-        st.toast("All data cache cleared! Screener universe rotated!")
-        st.rerun()
-    
-    st.sidebar.markdown("---")
-    
     # Initialize session state
     if 'hmm_generator' not in st.session_state:
         st.session_state.hmm_generator = HMMSignalGenerator()

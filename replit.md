@@ -6,13 +6,10 @@ This is a comprehensive trading platform built with Streamlit that combines Hidd
 
 ## Recent Changes
 
-**October 21, 2025 - Sidebar Button Visibility FIXED:**
-- **Root Cause**: CSS `display: inline-block !important` override was breaking Streamlit's BaseWeb inline-flex layout, collapsing buttons to 0×0 pixels
-- **Solution**: Removed all display/layout overrides; kept only color/border styling
-- **Sidebar Visibility**: Added `transform: none !important` to prevent sidebar collapse
-- **Code Structure**: Changed from `with st.sidebar:` to explicit `st.sidebar.download_button()` and `st.sidebar.button()` with unique keys
-- **Testing**: E2E tests confirm both buttons are visible, clickable, and functional
-- **Status**: ✅ WORKING - Both "Download User Manual" and "Refresh All Data" buttons fully functional
+**October 21, 2025 - Sidebar Cleanup:**
+- **Removed User Manual section** - Download button removed from sidebar
+- **Removed Data Refresh section** - Refresh button removed from sidebar
+- **Simplified sidebar** - Screening Criteria now appears at top of sidebar without clutter
 
 **October 16, 2025 - Dark Bloomberg Terminal UI Transformation:**
 - **Complete Dark Theme Implementation**: Transformed entire UI to professional Dark Bloomberg Terminal aesthetic
