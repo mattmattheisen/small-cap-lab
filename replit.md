@@ -91,6 +91,17 @@ This is a comprehensive trading platform built with Streamlit that combines Hidd
 
 Preferred communication style: Simple, everyday language.
 
+## Change Management Protocol
+
+**Required Workflow:**
+1. **Before Changes**: Read CHANGELOG.md to verify no similar changes were previously implemented or reverted
+2. **After Changes**: Update CHANGELOG.md with date, developer/initials, description, rationale, and status
+3. **Commit Alignment**: Ensure Git commit messages mirror changelog entries for traceability
+
+**Format**: Keep a Changelog (https://keepachangelog.com/en/1.0.0/)
+
+**Status Values**: Planned, In Progress, Implemented, Tested, Production, Deprecated, Rolled Back
+
 ## System Architecture
 
 The application follows a modular, single-page web application architecture built on Streamlit:
