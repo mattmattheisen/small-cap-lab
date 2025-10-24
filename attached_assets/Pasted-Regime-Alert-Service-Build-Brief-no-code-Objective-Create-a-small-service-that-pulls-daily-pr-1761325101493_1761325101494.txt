@@ -1,0 +1,87 @@
+Regime-Alert Service — Build Brief (no code)
+
+Objective
+Create a small service that:
+
+pulls daily prices for a ticker universe,
+
+assigns each ticker a regime (Bull / Neutral / Bear) using an HMM model with a simple trend proxy as fallback,
+
+detects regime changes vs the prior run, and
+
+sends me a mobile alert when changes occur.
+Do not run on Sundays.
+
+Inputs
+
+Ticker universe file: config/universe.txt (one symbol per line).
+Seed list: APPS, ATUS, CSIQ, FUBO, WOLF, ARQQ, SPIR, SES, SANA, JKS.
+
+Outputs
+
+out/today_regimes.csv — columns: symbol, last_price, regime, timestamp.
+
+out/changes.csv — columns: symbol, from_regime, to_regime, timestamp (only when flips occur).
+
+Console print of a short summary each run.
+
+Webhook alert payload with lines like:
+Regime changes:\nARQQ: Neutral ➜ Bull\nCSIQ: Bear ➜ Neutral
+
+Regime Logic (behavioral spec)
+
+Primary method: 3-state Gaussian HMM on last ~6–9 months of daily returns; label states by mean return (lowest=Bear, middle=Neutral, highest=Bull); use the latest state as the current regime.
+
+Fallback method (if HMM isn’t available or fails): moving-average trend proxy (short vs. medium) to classify Bull / Neutral / Bear.
+
+Persist previous regimes in data/hmm_prev.json and compare on each run; alert only when a ticker’s label differs from its previous label.
+
+Scheduling & Guardrails
+
+Run twice on trading days: 08:05 CT (pre-market) and 15:10 CT (near close).
+
+Skip Sundays entirely (check local timezone before doing any work).
+
+If the same day already ran and nothing changed, do nothing besides logging.
+
+Lightweight on API calls (no redundant downloads in the same run).
+
+Configuration (no secrets in code)
+
+Use environment variables for:
+
+ALERT_WEBHOOK_URL (Slack Incoming Webhook or IFTTT Webhooks URL).
+
+TIMEZONE default America/Chicago.
+
+If ALERT_WEBHOOK_URL is absent, just print the alert text and still write the CSVs.
+
+Notifications
+
+Webhook message body should be human-readable, short, and grouped (no one message per ticker).
+
+If no changes, no alert.
+
+Logging & Files
+
+Create folders on first run: config/, data/, out/.
+
+Keep a lightweight text log: out/run.log with start time, count of symbols, count of changes, and runtime.
+
+Acceptance Criteria
+
+First run: writes today_regimes.csv, creates hmm_prev.json, sends no alert (no prior state).
+
+Subsequent run with a simulated flip: writes changes.csv and posts one webhook message listing only flipped tickers.
+
+Sunday test: prints “Sunday — skipping” (or similar), does not fetch data or write outputs.
+
+Universe changes (add/remove tickers) are picked up on the next run without code edits.
+
+Nice-to-Have (optional)
+
+CLI flags: --force-alert (send current regimes even without flips), --universe <path>.
+
+Small summary badge in console: total Bull / Neutral / Bear counts.
+
+Hand this brief to Replit and let it scaffold and implement.
