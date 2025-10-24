@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2025-10-24
+
+### Added - Agent
+- **Regime-Alert Service**: New standalone monitoring service for ticker regime changes (regime_alert_service/)
+  - 3-state HMM regime classifier (Bull/Neutral/Bear) with MA fallback
+  - Automatic regime change detection vs. previous run
+  - Webhook alerts for Slack/IFTTT when regime flips occur
+  - Scheduled runs: 8:05 CT (pre-market) and 15:10 CT (near close)
+  - Sunday skip logic and duplicate run prevention
+  - CSV outputs: today_regimes.csv and changes.csv
+  - Persistent state tracking in data/hmm_prev.json
+  - CLI support: --force-alert, --universe, --skip-schedule-check
+  - Lightweight logging to out/run.log
+  - Rationale: User requested autonomous monitoring service for regime transitions with mobile alerting
+  - Status: Tested, production-ready
+  - Components:
+    - regime_classifier.py: HMM + MA fallback classification
+    - regime_service.py: Main detection and alerting logic
+    - scheduler.py: Trading day scheduling and guardrails
+    - logger.py: Run history tracking
+    - main.py: CLI entry point
+    - test_service.sh: Comprehensive test suite
+  - Configuration: config/universe.txt with 10 seed tickers (APPS, ATUS, CSIQ, FUBO, WOLF, ARQQ, SPIR, SES, SANA, JKS)
+  - Environment variables: ALERT_WEBHOOK_URL, TIMEZONE (defaults to America/Chicago)
+
 ## [1.0.0] - 2025-10-21
 
 ### Added - Agent
