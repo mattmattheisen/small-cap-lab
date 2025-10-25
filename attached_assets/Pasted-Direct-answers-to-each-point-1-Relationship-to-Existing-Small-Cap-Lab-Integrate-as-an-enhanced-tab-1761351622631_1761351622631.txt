@@ -1,0 +1,156 @@
+Direct answers to each point
+1) Relationship to Existing Small-Cap Lab
+
+Integrate as an enhanced tab alongside the current screener (Option B).
+
+Do not replace the current screener. Keep it intact as the “Fundamentals” tab.
+
+New tab name: “Regime/Convexity Screener” under the Small-Cap Lab section.
+
+2) UI Platform Choice
+
+Add a new tab in the existing app.py (Streamlit).
+
+Reuse the existing Streamlit app framework and session state patterns.
+
+Keep the tab self-contained (own controls, table, CSV export).
+
+3) HMM Code Reuse
+
+Refactor existing hmm_signal_generator.py into a shared module (e.g., shared/regime_hmm.py) and import it in both places.
+
+Keep the interface stable: function that returns {p_bear, p_sideways, p_bull, regime_label} for the latest date.
+
+Deterministic seed for reproducibility.
+
+4) Data Source
+
+Stick with yfinance for consistency and zero extra setup.
+
+If you need a fallback for outages, stub a switch to Stooq—but default to yfinance.
+
+5) Project Structure (within current repo)
+
+Use a light, integrated structure—no separate repo:
+
+/app.py                             # existing Streamlit
+/shared/
+  regime_hmm.py                     # refactored HMM utilities (reused)
+  data_io.py                        # shared fetch + caching utils (yfinance)
+  features.py                       # ATR, RV, convexity, liquidity helpers
+/screener_regime/
+  config.yaml                       # weights + thresholds
+  tickers.csv                       # csv-driven universe
+  engine.py                         # ranking + composite score
+  tests/                            # unit + integration tests
+README.md                           # updated run/usage
+
+6) Phased Delivery
+
+Phase 1 (engine + CLI + tests):
+
+Data fetch, features (ATR%, RV20, convexity), regime probs via shared HMM, composite rank, CSV export, tests, determinism.
+
+Phase 2 (Streamlit tab + polish):
+
+New tab UI (upload tickers.csv, sliders for thresholds/weights, run button, sortable table, CSV download), log panel, docs.
+
+7) Universe Size
+
+Target 500–1,000 tickers capability.
+
+I don’t have a curated file handy; please seed tickers.csv with ~300–500 liquid small/mid caps (Russell 2000 + our frequent names) and make it easy for me to append.
+
+The UI must also allow a one-off upload to override the file for a run.
+
+8) Performance Target
+
+Keep freshness first (default: pull latest daily data).
+
+Add simple on-disk caching of OHLCV per ticker (parquet) with:
+
+TTL 24h for daily runs,
+
+“Force refresh” checkbox in the UI to bypass cache for the current session.
+
+Parallelize downloads (respectful concurrency) and retry/backoff.
+
+Goal: ≤ 6–7 minutes for 500 tickers on typical Replit; document actual timings.
+
+Additional implementation specifics (to remove guesswork)
+Tab name & layout
+
+Tab title: Regime / Volatility / Convexity
+
+Controls (left column):
+
+File picker to upload tickers.csv (optional).
+
+Numeric inputs / sliders:
+
+min_dollar_volume (default 5,000,000)
+
+min_price (default 5)
+
+min_market_cap (default 300,000,000)
+
+Weights: transition (0.45), convexity (0.30), atrp (0.20), rv20 (0.05)
+
+Thresholds: atrp_min (2.5), atrp_max (10.0), convexity_min (1.20), transition_min (0.35)
+
+Force refresh (checkbox)
+
+Run (button)
+
+Outputs (main area):
+
+Status/log panel (fetch progress, skips, timing).
+
+Sortable table with columns:
+ticker, score, regime, p_bear, p_sideways, p_bull, atrp_pct, rv20, convexity, price, market_cap
+
+Download CSV button (screen_results.csv)
+
+Tiny legend explaining convexity and regime.
+
+Engine details (acceptance-friendly)
+
+Convexity (tail ratio): 95th pct up day / |5th pct down day| over last 250 sessions; NA if < 50 obs → exclude.
+
+Liquidity filter: 20-day average dollar volume (Close × Volume) ≥ min_dollar_volume.
+
+ATR%: ATR(14)/Close × 100; RV20: stdev(returns, 20) × √252.
+
+Regime mapping: sort HMM states by mean log return → label as Bear < Sideways < Bull.
+
+Transition score: 0.7*p_bull + 0.3*max(0, p_sideways - p_bear).
+
+Composite score: min–max normalize each component to [0,1] using config ranges; weighted sum with config weights; tie-break on p_bull.
+
+Determinism & tests
+
+Fix random seed in HMM; two identical runs with same inputs must yield identical CSV (order & values).
+
+Unit tests for: ATR%, convexity, regime mapping, probabilities sum ~1.0, transition monotonicity when p_bull ↑ & p_bear ↓.
+
+Integration test on 15–20 sample tickers (include SOFI, AEIS) producing a non-empty ranked CSV.
+
+Logging & errors
+
+Log skipped tickers (e.g., failed fetch, illiquid) with reasons.
+
+Graceful continue on errors; no hard crash.
+
+Display elapsed time and processed count in UI.
+
+Final choices (for your “go”)
+
+Option B: Integrated tab in existing Streamlit app.
+
+Reuse HMM by refactoring into a shared module.
+
+Use yfinance, with light on-disk caching (24h TTL + Force Refresh).
+
+Two-phase delivery (engine/tests → UI).
+
+CSV-driven universe; please seed tickers.csv to ~300–500 symbols.
