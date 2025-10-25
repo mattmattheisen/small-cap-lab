@@ -1,0 +1,283 @@
+Working Order: Regime–Volatility–Convexity Screener (v1.0)
+0) Objective
+
+Build a production-grade stock screener that:
+
+Expands the universe beyond ~80 tickers (csv-driven, scalable to 500–1,000+).
+
+Adds Regime, Volatility, and Convexity layers on top of basic fundamentals.
+
+Outputs a ranked table (downloadable CSV) suitable for swing trading and covered-call overlays.
+
+No copy-pasted code. Engineer builds fresh, testable modules with the acceptance criteria below.
+
+1) Deliverables
+
+CLI app (run from terminal) and lightweight web UI (simple sortable table).
+
+Data layer that fetches OHLCV + basic fundamentals (free source acceptable; see Data Sources).
+
+Feature layer to compute:
+
+Regime probabilities (Bear/Sideways/Bull) via 3-state HMM or equivalent.
+
+Volatility metrics (ATR%, 20-day realized vol).
+
+Convexity metric (tail-ratio: upside vs downside daily returns).
+
+Composite rank and filtering.
+
+CSV export of full results.
+
+Config (YAML or JSON) for tunable thresholds and weights.
+
+Automated tests (unit + integration) covering edge cases.
+
+README + Runbook with step-by-step usage and troubleshooting.
+
+2) Functional Requirements
+2.1 Universe & Inputs
+
+tickers.csv (one symbol per line). No hard-coded 80 cap.
+
+Config file (e.g., config.yaml) that includes:
+
+min_dollar_volume (default: $5,000,000 20-day avg)
+
+atrp_range_percent (default: 2.5–10.0)
+
+convexity_min (default: 1.20)
+
+transition_score_min (default: 0.35)
+
+weights for composite score (e.g., transition 45%, convexity 30%, atrp 20%, rv 5%)
+
+2.2 Data Sources (free-tier acceptable)
+
+OHLCV & price: Yahoo Finance or Stooq or Tiingo free (choose one and document).
+
+Basic fundamentals: last price, market cap (use same provider’s info endpoint).
+
+No paid options data in v1. (Design so IV can be added later.)
+
+2.3 Features / Signals
+
+Volatility
+
+ATR(14) and ATR% = ATR / Close × 100.
+
+RV20 = st.dev of daily returns over 20 trading days × √252.
+
+Convexity (Tail Ratio)
+
+On last 250 trading days:
+
+UpTail = 95th percentile of daily returns
+
+DownTail = abs(5th percentile of daily returns)
+
+Convexity = UpTail / DownTail.
+
+If < 50 observations, set convexity = NA and exclude from ranking.
+
+Regime (3-state)
+
+Fit on 2 features (daily log return, RV20) or similar compact set.
+
+Output probabilities for Bear, Sideways, Bull for the most recent day.
+
+Transition score = weighted combination that emphasizes “Sideways→Bull” inflection.
+
+Example formula (engineer may improve but must document):
+Transition = 0.7 * P(Bull_today) + 0.3 * max(0, P(Sideways_today) – P(Bear_today))
+
+Liquidity filter
+
+20-day average dollar volume ≥ min_dollar_volume.
+
+Basic fundamentals hygiene
+
+Price ≥ $5
+
+Market cap ≥ $300M (configurable)
+
+2.4 Composite Score & Output
+
+Composite score = weighted sum of normalized:
+
+Transition score, Convexity, ATR%, RV20 (weights from config).
+
+Sort by Composite Score desc, tie-break by P(Bull) desc.
+
+Output columns (exact names):
+
+ticker, score, regime, p_bear, p_sideways, p_bull, atrp_pct, rv20, convexity, price, market_cap
+
+CSV export to screen_results.csv.
+
+2.5 Web UI (lightweight)
+
+Single page:
+
+File upload for tickers.csv (optional; otherwise use repo file).
+
+Inputs for thresholds/weights (load from config; editable in UI).
+
+Run button → table renders with sort, filter, and Download CSV.
+
+No auth required in v1 (local use). Clean, simple styling.
+
+3) Non-Functional Requirements
+
+Speed: With 500 tickers and 3 years of daily data, total run < 6 minutes on Replit’s standard environment. (Engineer documents actual runtime.)
+
+Stability: Handle API timeouts gracefully with retry/backoff. Skip failed tickers; don’t crash the run.
+
+Determinism: For the HMM, fixerandom seeds; output must be reproducible given the same data.
+
+Logging: INFO logs for progress (“Fetched X/Y tickers”), WARN for skips, ERROR for failures.
+
+Modularity: Separate data, features, models, screen logic. No monolith.
+
+Documentation: README with setup, run, config explanation, and known caveats.
+
+4) Acceptance Tests (Must Pass)
+Data & Filters
+
+Universe expansion: When tickers.csv contains 300 tickers, the run processes ≥ 90% and returns a ranked table (skips logged).
+
+Liquidity filter: If a ticker’s 20-day dollar vol < threshold, it is excluded and appears in a “skipped” log summary.
+
+Fundamental hygiene: Any ticker with price < $5 is excluded.
+
+Signals
+
+ATR% sanity: For any ticker with close ≈ $20 and ATR ≈ $1, atrp_pct ≈ 5.0 ± 0.2.
+
+Convexity: For a synthetic series where up days are larger than down days, convexity > 1.0.
+
+Regime probs sum: For every row, p_bear + p_sideways + p_bull = 1.00 ± 0.01.
+
+Transition score monotonicity: If p_bull increases while p_bear decreases, transition score should not go down (within reasonable numeric noise).
+
+Output & UI
+
+CSV: screen_results.csv includes all required columns and ≥ 50 ranked rows (assuming enough tickers pass).
+
+UI: User can change min_dollar_volume in UI, rerun, and see fewer/more results as expected.
+
+Determinism: Two consecutive runs with the same inputs produce identical screen_results.csv (byte-for-byte or equal after sorting).
+
+5) Config Defaults (engineer can tune but must expose)
+universe:
+  tickers_path: "tickers.csv"
+
+filters:
+  min_dollar_volume: 5000000
+  min_price: 5
+  min_market_cap: 300000000
+
+features:
+  atr_window: 14
+  rv_window: 20
+  convexity_lookback: 250
+  hmm_states: 3
+  random_seed: 7
+
+thresholds:
+  atrp_min: 2.5
+  atrp_max: 10.0
+  convexity_min: 1.20
+  transition_min: 0.35
+
+weights:
+  transition: 0.45
+  convexity: 0.30
+  atrp: 0.20
+  rv20: 0.05
+
+6) Engineering Notes & Design Constraints
+
+HMM Implementation: Use a standard Gaussian HMM or equivalent regime classifier. Must map hidden states to Bear/Sideways/Bull by sorting each state’s mean return (lowest = Bear, highest = Bull).
+
+Normalization: When composing the score, engineer must use clear min–max ranges (configurable) and clip to [0,1]. Document ranges used.
+
+Retries: Data fetch must implement retry/backoff (e.g., 3 tries, 1–2s jitter).
+
+Caching (optional): Day-level caching per ticker to speed re-runs; document cache invalidation rules.
+
+Extensibility: Code structured so an IV-RV gap feature can be added later with a paid options API (Polygon/ORATS). Pre-create a placeholder function and wire it to config (off by default).
+
+7) Test Plan (Engineer-provided artifacts)
+
+Unit tests for:
+
+ATR% calculation
+
+Convexity function
+
+Regime mapping (state → label)
+
+Integration tests:
+
+End-to-end run on a 20-ticker sample list (include SOFI, AEIS, PLTR, PYPL, OPFI, APPS, ELF, SPY).
+
+Snapshot test: verify deterministic CSV and key fields.
+
+8) Runbook (Ops)
+
+Run (CLI): python -m screener.run --config config.yaml
+
+Run (UI): uvicorn app:app --port 7860 or streamlit run app.py (engineer chooses one and documents).
+
+Common Errors:
+
+Rate-limit → auto retry, then skip; log ticker.
+
+Missing fundamentals → set to NA, still rank if liquidity & price pass.
+
+Outputs:
+
+screen_results.csv saved in project root.
+
+logs/ directory with timestamped run logs.
+
+Update universe: replace tickers.csv, rerun.
+
+9) Future Enhancements (Out of Scope v1, but design for it)
+
+Options IV: Add 30-day ATM IV and IV–RV gap feature (positive gap favors covered-call overlays).
+
+Sector/Industry regime filters: throttle thresholds per sector (tech vs financials).
+
+Kelly sizing column: derive a fractional-Kelly suggestion per name.
+
+Portfolio simulator: paper trade top-N selections with stops/targets.
+
+10) Acceptance Definition of Done (DOD)
+
+All Acceptance Tests pass.
+
+I can upload a 300-ticker CSV, click Run, see a ranked table, and Download CSV.
+
+Re-running with the same inputs produces identical results.
+
+Documentation exists (README + Runbook) and is sufficient for a non-engineer to run locally.
+
+11) Milestones & Payment Triggers (suggested)
+
+Spec Sign-off (this doc) → 10%
+
+Data + Features complete (CLI only), tests green → 30%
+
+Regime + Ranking + CSV working, tests green → 30%
+
+Web UI + Docs + Runbook delivered, all Acceptance Tests pass → 30%
+
+Notes for your team
+
+I don’t want pasted code. I want a fresh implementation that meets the tests above.
+
+If you propose a different modeling approach (e.g., regime via Markov-switching AR(1) or clustering), that’s fine if you keep the Bear/Sideways/Bull outputs, the transition score, and you pass the acceptance tests.
+
+Keep the universe flexible and csv-driven. No hard-coded list size.
