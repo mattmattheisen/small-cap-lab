@@ -1,0 +1,243 @@
+IFO (Institutional Flow Overlay) – Implementation Spec (Concise)
+1) Integration 1: Posterior Adjustment (logit-shift)
+
+Let P_bull_raw ∈ (0,1) be the HMM posterior for bullish regime.
+
+logit(p) = ln(p / (1 - p))
+
+sigmoid(x) = 1 / (1 + e^(−x))
+
+Hyperparameter: gamma = 0.6 (tune 0.3–0.9)
+
+Formula
+
+P_bull_adj = sigmoid( logit(P_bull_raw) + gamma * IFS_smoothed )
+
+
+IFS_smoothed is the smoothed/rescaled Institutional Flow Score (see §3).
+
+2) Decision Bands (for “Decision” column)
+
+Evaluate using IFS_smoothed and P_bull_adj.
+
+Primary bands (by IFS):
+
+IFS_smoothed > +1.0 → Increase
+
+0.0 ≤ IFS_smoothed ≤ +1.0 → Maintain
+
+−1.0 ≤ IFS_smoothed < 0.0 → Reduce
+
+IFS_smoothed < −1.0 → Exit
+
+Tie-breakers:
+
+If P_bull_adj < 0.40 → force Exit
+
+If P_bull_adj > 0.80 and IFS_smoothed ≥ 0 → allow Increase
+
+3) Institutional Flow Score (IFS)
+3.1 Components (per ticker)
+
+Z_H (q/q institutional holdings change, standardized 12 quarters):
+
+H_t = (InstHold_t - InstHold_{t-1}) / InstHold_{t-1}
+Z_H = (H_t - mean(H)) / std(H)
+
+
+RV (relative volume z-score):
+
+RV = (mean_vol_5d - mean_vol_100d) / std(vol_100d)
+
+
+AD_slope (A/D normalized slope):
+
+MFM = ((Close - Low) - (High - Close)) / max(High - Low, 1e-6)
+MFV = MFM * Volume
+AD_t = cumulative sum of MFV
+AD_slope = OLS slope of AD over last L=20 bars
+AD_slope = AD_slope / MAD(AD over last 120 bars)
+clip AD_slope to [-2, +2]
+
+
+Z_DTC (optional short-interest improvement; weekly/semimonthly):
+
+DTC = ShortInterest / mean_vol_30d
+ΔDTC = -(DTC_t - DTC_{t-1})      # improvement is bullish
+Z_DTC = (ΔDTC - mean(ΔDTC)) / std(ΔDTC)   # 52-week window
+
+3.2 Weights & Raw Score
+
+Default weights (sum to 1):
+
+w1=0.45 (Z_H), w2=0.25 (RV), w3=0.20 (AD_slope), w4=0.10 (Z_DTC)
+IFS_raw = w1*Z_H + w2*RV + w3*AD_slope + w4*Z_DTC
+clip IFS_raw to [-3, +3]
+
+
+If a component is missing, set its w to 0 and renormalize remaining weights to sum to 1.
+
+3.3 Smoothing & Rescale
+
+Smooth with EMA half-life = 21 trading days (convert to α).
+
+Winsorize rolling 252-day IFS at 5th/95th percentiles, then linearly rescale to [-2, +2].
+Result → IFS_smoothed.
+
+4) Kelly Scaling (Integration 2)
+
+Let kelly_base be the Kelly fraction from your edge/odds.
+
+Hyperparams: beta = 0.25 (tune 0.1–0.4), K_max = 0.25.
+
+kelly_adj = min( K_max, max(0, kelly_base * (1 + beta * IFS_smoothed)) )
+
+5) Output Contract (exact fields)
+
+Emit one record per ticker per day:
+
+ticker (string)
+
+date (YYYY-MM-DD)
+
+P_bull_raw (float 0..1)
+
+IFS_raw (float, clipped to −3..+3)
+
+IFS_smoothed (float, rescaled to −2..+2)
+
+P_bull_adj (float 0..1)
+
+kelly_base (float 0..1)
+
+kelly_adj (float 0..1)
+
+decision (enum: Increase | Maintain | Reduce | Exit)
+
+components_present (object booleans: has_ZH, has_RV, has_ADslope, has_ZDTC)
+
+notes (string; e.g., “13F +1.7σ; RV z=1.1; AD_slope=0.8; DTC n/a”)
+
+version (string; e.g., “IFO v1.1”)
+
+6) Validation Rules (must pass)
+
+Weight renormalization when any component missing; record booleans.
+
+Clipping & winsorization exactly as specified.
+
+Posterior monotonicity: if IFS_smoothed rises by ≥1.0 while P_bull_raw ∈ [p−0.05, p+0.05], then P_bull_adj must increase.
+
+Kelly guardrails: 0 ≤ kelly_adj ≤ K_max.
+
+Reproducibility: identical inputs → identical outputs.
+
+Staleness flag: if latest 13F older than 180 days, set has_ZH=false and renormalize.
+
+Numerical safety: when High==Low, set MFM=0 via denominator max(High-Low, 1e-6).
+
+7) Backtest Protocol & A/B Switch
+
+Boolean switch: use_IFO ∈ {true,false}.
+
+If false: use P_bull_raw, kelly_base.
+
+If true: use P_bull_adj, kelly_adj.
+
+Run both on the same tickers/range and report:
+
+Regime precision & recall for bullish calls (threshold P_bull > 0.60)
+
+CAGR, annualized Sharpe, Sortino
+
+Max drawdown
+
+Mean and variance of Kelly utilization
+
+Trade hit rate and avg win/loss
+
+Pass criteria (suggested):
+
+Bullish precision +5–10% vs baseline
+
+Max DD not worse
+
+Sharpe same or higher
+
+Kelly variance lower or equal for similar return
+
+8) Data Availability — My Choices (so you can build now)
+
+Institutional Holdings (13F):
+→ Manual CSV upload for now (quarterly). File: data/institutional_holdings.csv
+Columns: ticker, quarter_end(YYYY-MM-DD), inst_hold_pct (or absolute shares; your choice—use consistently).
+Replit computes H_t and Z_H. Later we can swap to EDGAR or a paid API.
+
+Short Interest:
+→ Optional/skip initially. Set w4=0 and renormalize other weights. If later added (FINRA or paid), restore w4=0.10.
+
+Daily signals (RV, AD_slope):
+→ Use existing OHLCV (yfinance or your current source). These are required and available now.
+
+9) Integration Scope (tabs)
+
+Apply IFO across all three to keep outputs consistent:
+
+HMM Trading Signals tab: show P_bull_raw, IFS_smoothed, P_bull_adj, decision.
+
+Kelly Position Sizing tab: use kelly_adj when use_IFO=true.
+
+Combined Analytics tab: side-by-side raw vs adjusted, plus Decision column.
+
+10) Relationship to pending projects & Priority
+
+Priority: Implement IFS overlay first as a self-contained module.
+
+After it’s working, add IFS as a filter/ranking layer inside the Regime/Vol/Convexity Screener.
+
+Regime-Alert Service stays as is, but you can append IFS summary in alert messages later.
+
+11) Phased Implementation (pragmatic)
+
+Phase 1A (now): IFS with RV + AD_slope only. Weights: w2=0.60, w3=0.40, w1=w4=0. Full smoothing, bands, logit-shift, Kelly scaling, A/B backtest.
+
+Phase 1B: Add Z_H from manual CSV; weights → w1=0.45, w2=0.25, w3=0.30 (temporarily) if no short-interest; or w3=0.20 + w4=0.10 once short-interest arrives.
+
+Phase 1C: Add Z_DTC (short interest) when source available; finalize weights to 0.45/0.25/0.20/0.10.
+
+12) Minimal File/Config Boundaries (no code)
+
+data/institutional_holdings.csv (quarterly, manual)
+
+config/ifo.yaml
+
+weights: {Z_H: 0.45, RV: 0.25, AD_slope: 0.20, Z_DTC: 0.10}
+gamma: 0.6
+beta: 0.25
+K_max: 0.25
+ema_half_life_days: 21
+winsor_pct: [0.05, 0.95]
+ifs_rescale_range: [-2, 2]
+decision_bands: {inc: 1.0, red: -0.0, exit: -1.0}
+bull_thresholds: {exit_force: 0.40, inc_allow: 0.80}
+
+
+use_IFO (boolean toggle, e.g., in app settings)
+
+Answers Replit needed (quick bullets to include in the ticket)
+
+Integration 1 formula: P_bull_adj = sigmoid(logit(P_bull_raw) + gamma * IFS_smoothed)
+
+Decision Bands: IFS > 1.0=Increase, 0..1=Maintain, -1..0=Reduce, < -1.0=Exit, with P_bull_adj tie-breakers (force Exit <0.40; allow Increase >0.80 with IFS≥0)
+
+Output Contract: see §5 exact fields
+
+Validation Rules: see §6 (7 tests)
+
+A/B switch: use_IFO with metrics in §7
+
+Data Sources: 13F = manual CSV now; short interest optional/skip; daily signals from existing OHLCV
+
+Scope: Apply to HMM tab, Kelly tab, Combined
+
+Priority: IFS first, then integrate into Screener
