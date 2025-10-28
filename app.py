@@ -948,11 +948,7 @@ def small_cap_screener():
         )
         
         # Reload button
-        col_reload1, col_reload2 = st.columns([2, 1])
-        with col_reload1:
-            reload_universe = st.button("Reload Universe", help="Refresh universe from CSV")
-        with col_reload2:
-            pass
+        reload_universe = st.button("Reload Universe", help="Refresh universe from CSV", use_container_width=True)
         
         if reload_universe:
             # Reload and reinitialize screener

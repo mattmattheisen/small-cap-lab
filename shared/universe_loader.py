@@ -75,8 +75,16 @@ class UniverseLoader:
             }
         
         try:
-            # Load CSV
-            df = pd.read_csv(self.csv_path)
+            # Load CSV with explicit dtype for string columns
+            df = pd.read_csv(self.csv_path, dtype={
+                'ticker': str,
+                'name': str,
+                'exchange': str,
+                'sector': str,
+                'priority': str,
+                'source': str,
+                'notes': str
+            })
             
             # Validate required columns
             required_cols = ['ticker']
@@ -191,7 +199,8 @@ class UniverseLoader:
                     ])
                     result = result[~etf_mask]
             
-            # Check blocklist
+            # Check blocklist (ensure ticker is string type)
+            result['ticker'] = result['ticker'].astype(str)
             blocklist_mask = result['ticker'].str.upper().isin(etf_blocklist)
             if blocklist_mask.any():
                 excluded = result[blocklist_mask]['ticker'].tolist()
@@ -252,7 +261,9 @@ class UniverseLoader:
         # Filter: Exchanges
         if 'exchange' in result.columns and filters.get('exchanges_allow'):
             allowed_exchanges = [ex.upper() for ex in filters['exchanges_allow']]
-            exchange_mask = (result['exchange'].notna()) & (~result['exchange'].str.upper().isin(allowed_exchanges))
+            # Ensure exchange is string type and handle empty/nan values
+            result['exchange'] = result['exchange'].fillna('').astype(str)
+            exchange_mask = (result['exchange'] != '') & (~result['exchange'].str.upper().isin(allowed_exchanges))
             if exchange_mask.any():
                 excluded = result[exchange_mask]['ticker'].tolist()
                 self.exclusions.extend([
