@@ -43,7 +43,17 @@
   },
   "backtest": {
     "default_months": 6,
+    "configurable_months": [6, 12, 24],
     "use_IFO": true,
+    "default_tickers": [
+      "SOFI", "AEIS", "LC", "ARRY", "APPS",
+      "OPFI", "EDIT", "PLTR", "AEHR", "INMD"
+    ],
+    "acceptance_criteria": {
+      "precision_improvement_pct": 5.0,
+      "max_dd_tolerance": 0.0,
+      "min_sharpe_ratio": 0.0
+    },
     "metrics": [
       "regime_precision",
       "regime_recall",
