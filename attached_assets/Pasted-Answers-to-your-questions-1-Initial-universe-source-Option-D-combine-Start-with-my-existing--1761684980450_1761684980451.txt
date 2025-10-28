@@ -1,0 +1,83 @@
+Answers to your questions
+
+1) Initial universe source → Option D (combine).
+
+Start with my existing tickers (≈90) + parse Russell 2000 & S&P 600 for the top ~300 by 30-day avg volume (exclude ETFs/ADRs).
+
+If a field is missing, use placeholders (see #2).
+
+I did generate starter files earlier—go ahead and create data/universe.csv in-repo; I’ll paste in more rows later.
+
+2) Missing CSV columns → Use placeholders.
+
+Fill unknowns with:
+
+name = ticker, exchange = "", sector = "", market_cap_musd = "", price = "", avg_vol_30d = "",
+
+is_adr = false, priority = "B", source = "seed", notes = "".
+
+I’ll refine over time; don’t block on metadata fetches.
+
+3) Tab integration priority → Screener only (for now).
+
+Wire universe.csv into the Small-Cap Screener first.
+
+Add a simple “Send to HMM/Kelly” action later; no changes to those tabs in this pass.
+
+4) Screener backward compatibility → Replace.
+
+Replace the internal ticker rotation with universe.csv.
+
+If the CSV is missing, show a loud warning + link to template; don’t crash.
+
+5) Priority filter behavior → Option 2.
+
+When “Priority first” is checked: fill max_tickers with all A first, then B, then C.
+
+When unchecked: ignore priority; just apply filters + sort.
+
+6) Cache implementation → Both.
+
+cache/universe_filtered.json (list + timestamp).
+
+cache/ohlcv/{TICKER}.parquet (per-ticker daily OHLCV).
+
+TTL = cache_ttl_days from config (default 1).
+
+7) Batch fetching strategy → Lazy on-demand.
+
+Don’t fetch on app load.
+
+When user clicks “Run Screener,” fetch in chunks (chunk_size, default 50) with sleep (sleep_seconds_between_chunks, default 1.5s).
+
+Show progress: “Batch 2/6 • 100/300 tickers fetched”.
+
+8) ADR/ETF exclusion → Add is_etf column.
+
+Extend schema with is_etf (bool).
+
+If missing, auto-detect via a small list (e.g., SPY, QQQ, IWM, SLY, VBR, etc.) and set is_etf=true. Respect exclude_etf in config.
+
+9) Missing columns behavior → Defaults + warning.
+
+Fill with defaults as in #2, display a toast with the exact missing columns and write them to the log.
+
+Build checklist (green-lit)
+
+data/universe.csv (create from combined sources + placeholders).
+
+config/universe_config.json (use keys we discussed; same defaults).
+
+shared/universe_loader.py (read → validate → filter → sort → cap → cache).
+
+shared/universe_cache.py (list + OHLCV parquet with TTL).
+
+Screener tab only: swap to load_universe(); add sidebar widget:
+
+“Universe: {selected}/{total}”
+
+☐ Priority first (Option 2 behavior)
+
+Reload button (reload CSV + invalidate list cache)
+
+Error/Exclusion panel.
