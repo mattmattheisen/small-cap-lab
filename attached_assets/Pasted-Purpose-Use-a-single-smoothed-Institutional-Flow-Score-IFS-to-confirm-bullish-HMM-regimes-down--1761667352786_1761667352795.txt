@@ -1,0 +1,815 @@
+Purpose
+
+Use a single, smoothed Institutional Flow Score (IFS) to confirm bullish HMM regimes, down-weight weak ones, and scale Kelly. This is a confidence overlay, not a new predictor inside the HMM.
+
+Data Inputs (per ticker, rolling)
+
+Institutional Holdings %Δ (q/q)
+
+𝐻
+𝑡
+=
+InstHold
+𝑡
+−
+InstHold
+𝑡
+−
+1
+InstHold
+𝑡
+−
+1
+H
+t
+	​
+
+=
+InstHold
+t−1
+	​
+
+InstHold
+t
+	​
+
+−InstHold
+t−1
+	​
+
+	​
+
+
+Source: 13F aggregation (WhaleWisdom/Fintel/EDGAR) → quarterly.
+
+Convert to a z-score within ticker (12-quarter window):
+
+Z
+𝐻
+=
+𝐻
+𝑡
+−
+𝜇
+(
+𝐻
+)
+𝜎
+(
+𝐻
+)
+Z
+H
+	​
+
+=
+σ(H)
+H
+t
+	​
+
+−μ(H)
+	​
+
+
+Relative Volume z-score (daily)
+
+𝑅
+𝑉
+=
+𝑉
+𝑜
+𝑙
+‾
+5
+𝑑
+−
+𝑉
+𝑜
+𝑙
+‾
+100
+𝑑
+𝜎
+(
+𝑉
+𝑜
+𝑙
+100
+𝑑
+)
+RV=
+σ(Vol
+100d
+	​
+
+)
+Vol
+5d
+	​
+
+−
+Vol
+100d
+	​
+
+	​
+
+
+Accumulation/Distribution (A/D) oscillator (daily)
+
+Money Flow Multiplier:
+
+MFM
+𝑑
+=
+(
+𝐶
+−
+𝐿
+)
+−
+(
+𝐻
+−
+𝐶
+)
+𝐻
+−
+𝐿
+MFM
+d
+	​
+
+=
+H−L
+(C−L)−(H−C)
+	​
+
+ (define 0 when 
+𝐻
+=
+𝐿
+H=L)
+
+Money Flow Volume: 
+MFV
+𝑑
+=
+MFM
+𝑑
+×
+𝑉
+𝑜
+𝑙
+𝑑
+MFV
+d
+	​
+
+=MFM
+d
+	​
+
+×Vol
+d
+	​
+
+
+A/D line: 
+AD
+𝑡
+=
+∑
+MFV
+𝑑
+AD
+t
+	​
+
+=∑MFV
+d
+	​
+
+
+Normalized slope over lookback 
+𝐿
+=
+20
+L=20:
+
+AD_slope
+=
+slope
+(
+AD
+𝑡
+−
+𝐿
+.
+.
+𝑡
+)
+M
+A
+D
+(
+AD
+𝑡
+−
+120..
+𝑡
+)
+AD_slope=
+MAD(AD
+t−120..t
+	​
+
+)
+slope(AD
+t−L..t
+	​
+
+)
+	​
+
+
+(MAD = median absolute deviation). Clip to 
+[
+−
+2
+,
++
+2
+]
+[−2,+2].
+
+Short-Interest Change (optional, weekly)
+
+Days-to-Cover: 
+DTC
+𝑡
+=
+ShortInterest
+𝑡
+𝑉
+𝑜
+𝑙
+‾
+30
+𝑑
+DTC
+t
+	​
+
+=
+Vol
+30d
+	​
+
+ShortInterest
+t
+	​
+
+	​
+
+
+Improvement (de-crowding) is bullish: 
+Δ
+DTC
+=
+−
+(
+DTC
+𝑡
+−
+DTC
+𝑡
+−
+1
+)
+ΔDTC=−(DTC
+t
+	​
+
+−DTC
+t−1
+	​
+
+)
+
+z-score within ticker (52-week window): 
+Z
+𝐷
+𝑇
+𝐶
+Z
+DTC
+	​
+
+.
+
+Raw Institutional Flow Score
+
+Weights default to emphasize verifiable holdings delta and real-time volume:
+
+𝑤
+1
+=
+0.45
+,
+  
+𝑤
+2
+=
+0.25
+,
+  
+𝑤
+3
+=
+0.20
+,
+  
+𝑤
+4
+=
+0.10
+w
+1
+	​
+
+=0.45,w
+2
+	​
+
+=0.25,w
+3
+	​
+
+=0.20,w
+4
+	​
+
+=0.10
+
+IFS
+𝑡
+𝑟
+𝑎
+𝑤
+=
+𝑤
+1
+⋅
+Z
+𝐻
++
+𝑤
+2
+⋅
+𝑅
+𝑉
++
+𝑤
+3
+⋅
+AD_slope
++
+𝑤
+4
+⋅
+Z
+𝐷
+𝑇
+𝐶
+IFS
+t
+raw
+	​
+
+=w
+1
+	​
+
+⋅Z
+H
+	​
+
++w
+2
+	​
+
+⋅RV+w
+3
+	​
+
+⋅AD_slope+w
+4
+	​
+
+⋅Z
+DTC
+	​
+
+
+Clip: 
+IFS
+𝑡
+𝑟
+𝑎
+𝑤
+∈
+[
+−
+3
+,
++
+3
+]
+IFS
+t
+raw
+	​
+
+∈[−3,+3].
+
+Smoothing & Rescale
+
+Use an EMA with a half-life of 21 trading days (α implied by half-life).
+
+IFS
+𝑡
+=
+E
+M
+A
+𝐻
+𝐿
+=
+21
+ ⁣
+(
+IFS
+𝑡
+𝑟
+𝑎
+𝑤
+)
+IFS
+t
+	​
+
+=EMA
+HL=21
+	​
+
+(IFS
+t
+raw
+	​
+
+)
+
+Then rescale to 
+[
+−
+2
+,
++
+2
+]
+[−2,+2] by linear mapping using a rolling 1-year min/max (winsorize 5/95th).
+
+Integration 1 — Posterior Regime Confidence
+
+You already have 
+𝑃
+𝑏
+𝑢
+𝑙
+𝑙
+=
+𝑃
+(
+bull
+∣
+obs
+)
+P
+bull
+	​
+
+=P(bull∣obs) from HMM.
+
+Bayesian-style adjustment (logit shift):
+
+logit
+(
+𝑝
+)
+=
+ln
+⁡
+𝑝
+1
+−
+𝑝
+logit(p)=ln
+1−p
+p
+	​
+
+
+Parameter 
+𝛾
+=
+0.6
+γ=0.6 (tune 0.3–0.9)
+
+𝑃
+~
+𝑏
+𝑢
+𝑙
+𝑙
+=
+𝜎
+ ⁣
+(
+logit
+(
+𝑃
+𝑏
+𝑢
+𝑙
+𝑙
+)
++
+𝛾
+⋅
+IFS
+𝑡
+)
+P
+~
+bull
+	​
+
+=σ(logit(P
+bull
+	​
+
+)+γ⋅IFS
+t
+	​
+
+)
+
+where 
+𝜎
+(
+𝑥
+)
+=
+1
+1
++
+𝑒
+−
+𝑥
+σ(x)=
+1+e
+−x
+1
+	​
+
+.
+
+Effect: positive IFS nudges the posterior toward bull; negative IFS does the opposite—without retraining the HMM.
+
+Integration 2 — Kelly Scaling
+
+Let 
+𝐾
+𝑏
+𝑎
+𝑠
+𝑒
+K
+base
+	​
+
+ be your Kelly fraction from edge/odds.
+Use a convex multiplier with guardrails:
+
+𝛽
+=
+0.25
+β=0.25 (tune 0.1–0.4)
+
+Cap Kelly in 
+[
+0
+,
+𝐾
+𝑚
+𝑎
+𝑥
+]
+[0,K
+max
+	​
+
+] (e.g., 
+𝐾
+𝑚
+𝑎
+𝑥
+=
+0.25
+K
+max
+	​
+
+=0.25)
+
+𝐾
+𝑎
+𝑑
+𝑗
+=
+min
+⁡
+ ⁣
+(
+𝐾
+𝑚
+𝑎
+𝑥
+,
+  
+𝐾
+𝑏
+𝑎
+𝑠
+𝑒
+⋅
+(
+1
++
+𝛽
+⋅
+IFS
+𝑡
+)
+)
+K
+adj
+	​
+
+=min(K
+max
+	​
+
+,K
+base
+	​
+
+⋅(1+β⋅IFS
+t
+	​
+
+))
+
+Floor at zero.
+
+Decision Bands (default)
+IFS	Posterior & Kelly Guidance
+> +1.0	Treat as confirming inflow. Use 
+𝑃
+~
+𝑏
+𝑢
+𝑙
+𝑙
+P
+~
+bull
+	​
+
+ and 
+𝐾
+𝑎
+𝑑
+𝑗
+K
+adj
+	​
+
+ (often ↑ 15–30%).
+0 to +1.0	Mild confirmation. Maintain.
+-1.0 to 0	Caution. Reduce 
+𝐾
+𝑎
+𝑑
+𝑗
+K
+adj
+	​
+
+ 10–20%.
+< -1.0	Strong outflow. Trim/exit unless HMM bull is very high (>0.8).
+Output Contract (for your UI & logs)
+
+Emit a single row per ticker per day with:
+
+ticker
+
+date
+
+P_bull_raw (from HMM)
+
+IFS_raw, IFS_smoothed
+
+P_bull_adj (posterior after logit shift)
+
+kelly_base, kelly_adj
+
+decision ∈ {Increase, Maintain, Reduce, Exit}
+
+notes (e.g., “13F ↑ 1.8σ; RV z=1.2; AD_slope=0.9”)
+
+(Provide this field list to Replit; they’ll wire it to your existing table.)
+
+Validation Rules (must pass)
+
+Stability: If any component is missing (e.g., no 13F), compute IFS with available parts and renormalize weights to sum to 1. Log which components were missing.
+
+Clipping: Apply the stated clip/winsorization exactly to avoid outliers exploding signals.
+
+Monotonicity test: When IFS rises by ≥1.0 while HMM 
+𝑃
+𝑏
+𝑢
+𝑙
+𝑙
+P
+bull
+	​
+
+ is flat (±0.05), 
+𝑃
+~
+𝑏
+𝑢
+𝑙
+𝑙
+P
+~
+bull
+	​
+
+ must rise.
+
+Guardrails: 
+0
+≤
+𝐾
+𝑎
+𝑑
+𝑗
+≤
+𝐾
+𝑚
+𝑎
+𝑥
+0≤K
+adj
+	​
+
+≤K
+max
+	​
+
+.
+
+Reproducibility: Same inputs → same outputs (seed independence).
+
+Backtest Protocol (A/B)
+
+Run With IFO vs Without IFO over your existing 145–180-day windows:
+
+Primary: improvement in regime precision (bullish signal true-positive rate)
+
+Secondary: portfolio Sharpe and max drawdown
+
+Tertiary: average Kelly utilization (lower variance with same or higher return)
+
+Pass criteria (suggested):
+
+≥ 5–10% lift in bullish precision
+
+Same or lower max DD
+
+Same or higher Sharpe
