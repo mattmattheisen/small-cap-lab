@@ -1,0 +1,74 @@
+# IFO (Institutional Flow Overlay) Configuration v1.1
+
+# Phase 1A: RV + AD_slope only (Z_H and Z_DTC disabled)
+weights:
+  Z_H: 0.0         # Institutional holdings (disabled Phase 1A)
+  RV: 0.60         # Relative volume z-score (Phase 1A active)
+  AD_slope: 0.40   # A/D normalized slope (Phase 1A active)
+  Z_DTC: 0.0       # Short interest (disabled Phase 1A)
+
+# Posterior adjustment (Integration 1)
+gamma: 0.6         # Logit-shift multiplier (tune 0.3-0.9)
+
+# Kelly scaling (Integration 2)
+beta: 0.25         # IFS multiplier for Kelly (tune 0.1-0.4)
+K_max: 0.25        # Maximum Kelly fraction
+
+# Smoothing parameters
+ema_half_life_days: 21    # EMA half-life for IFS smoothing
+
+# Winsorization & rescaling
+winsor_pct:
+  lower: 0.05      # 5th percentile
+  upper: 0.95      # 95th percentile
+
+ifs_rescale_range:
+  min: -2.0        # Rescale IFS to [-2, +2]
+  max: 2.0
+
+# Decision bands (thresholds on IFS_smoothed)
+decision_bands:
+  increase: 1.0    # IFS > 1.0 → Increase
+  maintain: 0.0    # 0.0 ≤ IFS ≤ 1.0 → Maintain
+  reduce: -0.0     # -1.0 ≤ IFS < 0.0 → Reduce
+  exit: -1.0       # IFS < -1.0 → Exit
+
+# Tie-breaker thresholds on P_bull_adj
+bull_thresholds:
+  exit_force: 0.40    # P_bull_adj < 0.40 → force Exit
+  inc_allow: 0.80     # P_bull_adj > 0.80 + IFS≥0 → allow Increase
+
+# Feature calculation parameters
+features:
+  rv_short_window: 5       # Days for short vol average
+  rv_long_window: 100      # Days for long vol average
+  ad_lookback: 20          # Bars for A/D slope (L)
+  ad_mad_window: 120       # Bars for A/D MAD normalization
+  ad_slope_clip:
+    min: -2.0
+    max: 2.0
+
+# Data requirements
+data_requirements:
+  min_ohlcv_days: 120      # Skip ticker if < 120 days history
+  staleness_days: 180      # Flag 13F as stale if > 180 days old
+
+# Backtest configuration
+backtest:
+  default_months: 6        # Default backtest period
+  use_IFO: true           # Toggle: true=use IFO adjustments, false=baseline
+  metrics:
+    - regime_precision
+    - regime_recall
+    - cagr
+    - sharpe
+    - sortino
+    - max_drawdown
+    - kelly_mean
+    - kelly_variance
+    - hit_rate
+    - avg_win_loss
+
+# Output metadata
+version: "IFO v1.1"
+phase: "1A"  # 1A=RV+AD only, 1B=+Z_H, 1C=+Z_DTC

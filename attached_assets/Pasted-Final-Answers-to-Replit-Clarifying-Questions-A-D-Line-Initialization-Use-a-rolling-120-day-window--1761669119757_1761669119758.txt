@@ -1,0 +1,215 @@
+Final Answers to Replit
+Clarifying Questions
+
+A/D Line Initialization
+
+Use a rolling 120-day window. Compute AD_t fresh each run from that window (no persistent state).
+
+Implementation: set AD_0 = 0 at the start of each 120-day window; accumulate MFV within the window; compute AD_slope via OLS over the last L=20 bars; normalize by MAD of the full 120-day window.
+
+Institutional Holdings CSV Format
+
+Option A (percentage) confirmed.
+
+CSV columns: ticker,quarter_end,inst_hold_pct (e.g., SOFI,2025-06-30,67.8 for 67.8%).
+
+Replit calculates H_t, Z_H.
+
+Phase 1A Weight Renormalization
+
+Normalize to sum = 1. Phase 1A weights: w2=0.60 (RV), w3=0.40 (AD_slope), w1=w4=0.
+
+Missing Data Handling
+
+If OHLCV < 120 days, skip the ticker for IFS (do not emit IFO record that day).
+
+Partial components otherwise: allowed; renormalize weights and set booleans in components_present.
+
+Backtest Period
+
+Make it configurable in ifo.yaml.
+
+Default = last 6 months for speed; allow 12–24 months via config.
+
+UI Integration – Decision Column
+
+Add columns to existing HMM, Kelly, and Combined tabs.
+
+Also create a new “IFO Summary” tab listing all output fields for quick scanning.
+
+Confirmed Architecture & Phase 1A Deliverables
+
+Architecture (filenames are guidance, not code):
+
+shared/
+  institutional_flow.py       # IFS engine (math)
+  data_loaders.py             # reads institutional_holdings.csv
+
+config/
+  ifo.yaml                    # all hyperparameters
+
+data/
+  institutional_holdings.csv  # manual quarterly updates (percent format)
+
+kelly_calculator.py           # accept IFS, return kelly_adj
+hmm_signal_generator.py       # emit P_bull_adj
+app.py                        # add IFO Summary tab + columns to existing tabs
+
+
+Phase 1A (RV + AD_slope only):
+
+IFS weights: RV=0.60, AD_slope=0.40
+
+Posterior adjustment:
+P_bull_adj = sigmoid( logit(P_bull_raw) + gamma * IFS_smoothed )
+
+Kelly scaling:
+kelly_adj = min(K_max, max(0, kelly_base * (1 + beta * IFS_smoothed)))
+
+Decision bands + tie-breakers (see below)
+
+Output contract (all 12 fields)
+
+Unit tests for the 7 validation rules
+
+A/B backtest with use_IFO toggle
+
+Config-driven hyperparameters in ifo.yaml
+
+UI integration (columns + IFO Summary tab)
+
+Fixed Formulas & Thresholds (for easy copy)
+IFS Components (recap)
+
+RV: (mean_vol_5d - mean_vol_100d) / std(vol_100d)
+
+AD_slope: OLS slope of AD over last L=20, normalized by MAD(AD over last 120), clip to [-2,+2].
+
+Phase 1A weights: IFS_raw = 0.60*RV + 0.40*AD_slope → clip to [-3,+3]
+
+Smooth: EMA half-life = 21 trading days
+
+Rescale: winsorize over rolling 252 bars at 5th/95th, then map to [-2,+2]
+→ IFS_smoothed
+
+Posterior Adjustment (Integration 1)
+
+gamma = 0.6
+P_bull_adj = sigmoid( logit(P_bull_raw) + gamma * IFS_smoothed )
+
+Kelly Scaling (Integration 2)
+
+beta = 0.25, K_max = 0.25
+kelly_adj = min( K_max, max(0, kelly_base * (1 + beta * IFS_smoothed)) )
+
+Decision Bands
+
+Primary by IFS_smoothed:
+
+> +1.0 → Increase
+
+0.0 … +1.0 → Maintain
+
+−1.0 … 0.0 → Reduce
+
+< −1.0 → Exit
+
+Tie-breakers:
+
+If P_bull_adj < 0.40 → Exit
+
+If P_bull_adj > 0.80 and IFS_smoothed ≥ 0 → Increase
+
+Output Contract (exact field names)
+
+One record per ticker per day:
+
+ticker (string)
+
+date (YYYY-MM-DD)
+
+P_bull_raw (float 0–1)
+
+IFS_raw (float, clipped −3..+3)
+
+IFS_smoothed (float, rescaled −2..+2)
+
+P_bull_adj (float 0–1)
+
+kelly_base (float 0–1)
+
+kelly_adj (float 0–1)
+
+decision (enum: Increase | Maintain | Reduce | Exit)
+
+components_present (object: has_ZH, has_RV, has_ADslope, has_ZDTC)
+
+notes (string; e.g., RV z=1.2; AD_slope=0.9; Z_H n/a; Z_DTC n/a)
+
+version (string; e.g., IFO v1.1)
+
+Validation Rules (must pass)
+
+Weight renormalization: if any component missing, set its weight to 0 and renormalize remaining to sum 1; set components_present booleans.
+
+Clipping & winsorization: IFS_raw ∈ [-3,+3]; IFS_smoothed ∈ [-2,+2] post-rescale.
+
+Posterior monotonicity: if IFS_smoothed ↑ by ≥1.0 and P_bull_raw varies ≤ ±0.05, then P_bull_adj must increase.
+
+Kelly guardrails: 0 ≤ kelly_adj ≤ K_max.
+
+Reproducibility: identical inputs → identical outputs (no randomness).
+
+Staleness flag: if latest 13F > 180 days old, set has_ZH=false and renormalize.
+
+Numerical safety: when High == Low, use denominator max(High-Low, 1e-6) so MFM is safe (effectively 0 that bar).
+
+Backtest Protocol & Toggle
+
+Toggle: use_IFO: true|false (in config/UI).
+
+If false: use P_bull_raw, kelly_base.
+
+If true: use P_bull_adj, kelly_adj.
+
+Metrics to report (both runs):
+
+Regime precision & recall for bullish calls (threshold P_bull > 0.60)
+
+CAGR, annualized Sharpe, Sortino
+
+Max drawdown
+
+Mean & variance of Kelly utilization
+
+Trade hit rate and average win/loss
+
+Default backtest window: last 6 months (configurable to 12–24 months).
+
+Data-Availability Decisions (locked)
+
+13F (Z_H): Manual CSV for now (ticker,quarter_end,inst_hold_pct).
+
+Short interest (Z_DTC): Optional, skip initially (set w4=0).
+
+Daily signals: RV + AD_slope from existing OHLCV (required in Phase 1A).
+
+Starter CSV template (example rows):
+
+ticker,quarter_end,inst_hold_pct
+SOFI,2025-06-30,67.8
+AEIS,2025-06-30,93.1
+LC,2025-06-30,77.4
+ARRY,2025-06-30,84.2
+
+Final Confirmations (go/no-go)
+
+Proceed with Phase 1A (RV + AD_slope, weights 0.60/0.40). ✅
+
+Generate a template CSV for institutional_holdings.csv with sample rows. ✅
+
+Use 6-month backtest by default (configurable). ✅
+
+Enhance existing tabs + add “IFO Summary” tab. ✅
+
+Skip tickers with < 120 days OHLCV history for IFO. ✅
