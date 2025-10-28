@@ -1,0 +1,102 @@
+Absolutely—here’s a zero-friction drop-in Replit can add now that expands your universe without a heavy build or new paid data.
+
+What to add (no code from you needed)
+
+1) A flat CSV for the universe
+
+Path: data/universe.csv
+
+Schema (headers):
+
+ticker,name,exchange,market_cap_musd,price,avg_vol_30d,sector,is_adr,priority,source,notes
+
+
+Replit will read this file and apply lightweight filters (below). You can paste/export tickers from any screener (Finviz/Nasdaq/etc.), no API required.
+
+I generated a starter file with your current names and example columns:
+Download: universe.csv
+
+2) Tiny config to control size & filters
+
+Path: config/universe_config.json
+
+Keys to support:
+
+max_tickers (e.g., 350)
+
+filters: min_price, min_avg_vol_30d, market_cap_min_musd, market_cap_max_musd, exchanges_allow, exclude_adr, exclude_etf
+
+prioritize: watchlist_priority_first, current_holdings_first
+
+batch_fetch: chunk_size, sleep_seconds_between_chunks, cache_ttl_days
+
+Starter config ready:
+Download: universe_config.json
+
+Minimal integration spec for Replit (no code in this message; just instructions)
+
+A) Universe loader
+
+New module reads data/universe.csv into a DataFrame.
+
+Apply filters from config/universe_config.json.
+
+Sort by:
+
+priority (A → B → C)
+
+avg_vol_30d (desc)
+
+market_cap_musd (desc)
+
+Cap to max_tickers.
+
+Return tickers list for downstream use.
+
+B) Caching & cost control
+
+Use existing OHLCV pipeline; batch fetch by batch_fetch.chunk_size with sleep_seconds_between_chunks.
+
+Cache daily results to local parquet/JSON with TTL = cache_ttl_days (default 1). Re-use cache to avoid repeat pulls.
+
+C) App wiring (one line per tab)
+
+Replace hardcoded universe with load_universe() output for:
+
+HMM / Signals tab
+
+Kelly tab
+
+Screener tab
+
+Add a small Universe sidebar block:
+
+Shows N_selected / N_total
+
+Checkbox “Use priorities (A first)”
+
+Button “Reload universe.csv”
+
+D) Validation (cheap and simple)
+
+Fail gracefully if universe.csv missing columns; show a toast “Missing columns: …”
+
+Exclude row if ticker blank or is_adr = true when exclude_adr.
+
+Show a tiny table “Excluded (top 10) with reason”.
+
+How you use it
+
+Export/paste lists from Finviz/Nasdaq/IWM/SLY constituents into universe.csv.
+
+Tag priority:
+
+A = core focus / current watch
+
+B = secondary
+
+C = long tail
+
+Set max_tickers in universe_config.json (start 300–350).
+
+Hit Reload in the app sidebar.
