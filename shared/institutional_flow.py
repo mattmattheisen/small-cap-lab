@@ -7,16 +7,16 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 from typing import Dict, Tuple, Optional
-import yaml
+import json
 
 
 class IFOEngine:
     """Institutional Flow Overlay calculation engine"""
     
-    def __init__(self, config_path: str = 'config/ifo.yaml'):
+    def __init__(self, config_path: str = 'config/ifo.json'):
         """Load configuration"""
         with open(config_path, 'r') as f:
-            self.config = yaml.safe_load(f)
+            self.config = json.load(f)
         
         self.weights = self.config['weights']
         self.gamma = self.config['gamma']

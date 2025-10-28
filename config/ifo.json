@@ -1,0 +1,62 @@
+{
+  "weights": {
+    "Z_H": 0.0,
+    "RV": 0.6,
+    "AD_slope": 0.4,
+    "Z_DTC": 0.0
+  },
+  "gamma": 0.6,
+  "beta": 0.25,
+  "K_max": 0.25,
+  "ema_half_life_days": 21,
+  "winsor_pct": {
+    "lower": 0.05,
+    "upper": 0.95
+  },
+  "ifs_rescale_range": {
+    "min": -2.0,
+    "max": 2.0
+  },
+  "decision_bands": {
+    "increase": 1.0,
+    "maintain": 0.0,
+    "reduce": -0.0,
+    "exit": -1.0
+  },
+  "bull_thresholds": {
+    "exit_force": 0.4,
+    "inc_allow": 0.8
+  },
+  "features": {
+    "rv_short_window": 5,
+    "rv_long_window": 100,
+    "ad_lookback": 20,
+    "ad_mad_window": 120,
+    "ad_slope_clip": {
+      "min": -2.0,
+      "max": 2.0
+    }
+  },
+  "data_requirements": {
+    "min_ohlcv_days": 120,
+    "staleness_days": 180
+  },
+  "backtest": {
+    "default_months": 6,
+    "use_IFO": true,
+    "metrics": [
+      "regime_precision",
+      "regime_recall",
+      "cagr",
+      "sharpe",
+      "sortino",
+      "max_drawdown",
+      "kelly_mean",
+      "kelly_variance",
+      "hit_rate",
+      "avg_win_loss"
+    ]
+  },
+  "version": "IFO v1.1",
+  "phase": "1A"
+}
