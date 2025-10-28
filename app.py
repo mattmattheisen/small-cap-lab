@@ -932,8 +932,92 @@ def small_cap_screener():
     
     screener = st.session_state.small_cap_screener
     
-    # Sidebar for screening criteria
+    # Sidebar for universe management and screening criteria
     with st.sidebar:
+        st.subheader("Universe Management")
+        
+        # Load universe statistics
+        from shared.universe_loader import UniverseLoader
+        universe_loader = UniverseLoader()
+        
+        # Priority checkbox
+        use_priority = st.checkbox(
+            "Priority First",
+            value=True,
+            help="Fill max_tickers with A priority, then B, then C"
+        )
+        
+        # Reload button
+        col_reload1, col_reload2 = st.columns([2, 1])
+        with col_reload1:
+            reload_universe = st.button("Reload Universe", help="Refresh universe from CSV")
+        with col_reload2:
+            pass
+        
+        if reload_universe:
+            # Reload and reinitialize screener
+            universe_loader.reload_config()
+            universe, stats = universe_loader.load(use_priority_first=use_priority)
+            
+            if stats.get('error'):
+                st.error(stats['error'])
+            else:
+                st.session_state.small_cap_screener = SmallCapScreener(universe=universe, use_priority_first=use_priority)
+                screener = st.session_state.small_cap_screener
+                st.toast(f"Universe reloaded: {stats['selected']} tickers")
+                st.rerun()
+        
+        # Display universe stats
+        universe, stats = universe_loader.load(use_priority_first=use_priority)
+        
+        if stats.get('error'):
+            st.error(f"Universe error: {stats['error']}")
+            universe_count_display = "0/0"
+        else:
+            universe_count_display = f"{stats['selected']}/{stats['total']}"
+            
+            # Show priority breakdown if using priority
+            if use_priority and 'priority_counts' in stats:
+                priority_str = " / ".join([f"{k}:{v}" for k, v in stats['priority_counts'].items() if v > 0])
+                st.caption(f"Selected: {universe_count_display} ({priority_str})")
+            else:
+                st.caption(f"Selected: {universe_count_display}")
+            
+            # Show exclusion info
+            if stats.get('filtered_out', 0) > 0:
+                st.caption(f"Filtered: {stats['filtered_out']}")
+        
+        st.markdown("---")
+        
+        # Paste CSV helper (optional)
+        with st.expander("Paste/Append CSV"):
+            csv_text = st.text_area(
+                "CSV Data (ticker, name, exchange, ...):",
+                height=150,
+                help="Paste CSV rows to append to universe"
+            )
+            
+            if st.button("Append to Universe"):
+                if csv_text.strip():
+                    try:
+                        import os
+                        csv_path = 'data/universe.csv'
+                        
+                        # Append to file
+                        with open(csv_path, 'a') as f:
+                            if not csv_text.endswith('\n'):
+                                csv_text += '\n'
+                            f.write(csv_text)
+                        
+                        st.success("CSV data appended!")
+                        st.toast("Reload universe to see changes")
+                    except Exception as e:
+                        st.error(f"Error appending CSV: {str(e)}")
+                else:
+                    st.warning("No CSV data to append")
+        
+        st.markdown("---")
+        
         st.subheader("Screening Criteria")
         
         # Market cap range
