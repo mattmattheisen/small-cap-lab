@@ -94,6 +94,24 @@ class UniverseLoader:
             # Apply filters
             df_filtered = self._apply_filters(df)
             
+            # Check if filtering resulted in empty universe
+            filters_relaxed = False
+            if len(df_filtered) == 0:
+                # Auto-relax: use top 50 by volume from unfiltered list
+                filters_relaxed = True
+                df_filtered = df.copy()
+                
+                # Sort by volume to get top 50
+                if 'avg_vol_30d' in df_filtered.columns:
+                    df_filtered = df_filtered.sort_values('avg_vol_30d', ascending=False, na_position='last')
+                
+                df_filtered = df_filtered.head(50)
+                
+                self.exclusions.insert(0, {
+                    'ticker': 'WARNING',
+                    'reason': 'All tickers filtered out - auto-relaxed to top 50 by volume'
+                })
+            
             # Sort by priority and other criteria
             if use_priority_first is None:
                 use_priority_first = self.config['prioritize'].get('watchlist_priority_first', True)
@@ -115,7 +133,8 @@ class UniverseLoader:
                 'capped': len(df_sorted) - len(df_final),
                 'exclusions': self.exclusions[:10],  # Top 10
                 'priority_counts': self._count_by_priority(df_final),
-                'use_priority_first': use_priority_first
+                'use_priority_first': use_priority_first,
+                'filters_relaxed': filters_relaxed
             }
             
             return ticker_list, stats

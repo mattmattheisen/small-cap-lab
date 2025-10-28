@@ -983,6 +983,10 @@ def small_cap_screener():
             else:
                 st.caption(f"Selected: {universe_count_display}")
             
+            # Show filters auto-relaxed badge
+            if stats.get('filters_relaxed', False):
+                st.warning("Filters auto-relaxed")
+            
             # Show exclusion info
             if stats.get('filtered_out', 0) > 0:
                 st.caption(f"Filtered: {stats['filtered_out']}")
