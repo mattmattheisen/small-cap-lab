@@ -1,0 +1,73 @@
+Confirmations
+
+Q1 — Initial population:
+Infrastructure only + seed with my ~90 existing tickers. I’ll paste the Russell 2000 & S&P 600 lists later.
+
+File: data/universe.csv (schema below).
+
+Please include a small “Paste/Append CSV” helper in the sidebar (optional) that just overwrites the file.
+
+Q2 — ADR detection:
+Skip for now. Set is_adr=false for all rows initially. Keep the is_adr column in the schema so I can tag manually later.
+
+Q3 — ETF exclusion list:
+Use a hard-coded list for now (exact-match, case-insensitive). Put it in config as etf_blocklist so I can edit. Seed it with ~20 common tickers:
+["SPY","QQQ","DIA","VTI","VOO","IWM","IJH","IJR","VB","VBK","VBR","VTWO","SLY","SLYG","SLYV","MDY","SPSM","IJR","IJR","IWN"]
+(Yes, a couple duplicates are fine to start; de-dup in code.)
+
+Technical choices
+
+Cache structure: cache/universe_filtered.json + cache/ohlcv/{TICKER}.parquet (subdirectory). TTL from config.
+
+Progress UI: Streamlit progress bar + text (“Batch 2/6 • 100/300 fetched”). If trivial, add a Cancel button to abort remaining batches.
+
+Screener integration: Modify SmallCapScreener.__init__(universe: Optional[List[str]] = None, use_priority_first: bool = False); if universe is None, call universe_loader.load().
+
+Empty after filters: Show warning toast, then auto-relax to top 50 by avg_vol_30d from the unfiltered list. Show a small badge: “Filters auto-relaxed”.
+
+Missing config: Create config/universe_config.json with defaults and show info toast.
+
+Files & schema
+
+data/universe.csv (required columns):
+
+ticker,name,exchange,market_cap_musd,price,avg_vol_30d,sector,is_adr,is_etf,priority,source,notes
+
+
+If unknown, use placeholders: name=ticker, empty strings for numeric/sector/exchange, is_adr=false, is_etf=false, priority="B", source="seed".
+
+priority allowed: "A"|"B"|"C".
+
+config/universe_config.json (defaults):
+
+{
+  "max_tickers": 350,
+  "filters": {
+    "min_price": 2.0,
+    "min_avg_vol_30d": 200000,
+    "market_cap_min_musd": 200,
+    "market_cap_max_musd": 5000,
+    "exchanges_allow": ["NYSE","NASDAQ","AMEX"],
+    "exclude_adr": true,
+    "exclude_etf": true
+  },
+  "prioritize": {
+    "watchlist_priority_first": true
+  },
+  "batch_fetch": {
+    "chunk_size": 50,
+    "sleep_seconds_between_chunks": 1.5,
+    "cache_ttl_days": 1
+  },
+  "etf_blocklist": ["SPY","QQQ","DIA","VTI","VOO","IWM","IJH","IJR","VB","VBK","VBR","VTWO","SLY","SLYG","SLYV","MDY","SPSM","IWN"],
+  "schema_version": "universe.v1"
+}
+
+
+Priority behavior (“Priority first” checked):
+Fill max_tickers with all A, then B, then C (Option 2). When unchecked, ignore priority and just apply filters/sort.
+
+Screener scope (this pass):
+Integrate Screener tab only. HMM/Kelly stay as-is for now.
+
+That’s everything—please proceed with this build.

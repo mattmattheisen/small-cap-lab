@@ -1,0 +1,26 @@
+{
+  "max_tickers": 350,
+  "filters": {
+    "min_price": 2.0,
+    "min_avg_vol_30d": 200000,
+    "market_cap_min_musd": 200,
+    "market_cap_max_musd": 5000,
+    "exchanges_allow": ["NYSE", "NASDAQ", "AMEX"],
+    "exclude_adr": true,
+    "exclude_etf": true
+  },
+  "prioritize": {
+    "watchlist_priority_first": true
+  },
+  "batch_fetch": {
+    "chunk_size": 50,
+    "sleep_seconds_between_chunks": 1.5,
+    "cache_ttl_days": 1
+  },
+  "etf_blocklist": [
+    "SPY", "QQQ", "DIA", "VTI", "VOO", "IWM", "IJH", "IJR",
+    "VB", "VBK", "VBR", "VTWO", "SLY", "SLYG", "SLYV",
+    "MDY", "SPSM", "IWN"
+  ],
+  "schema_version": "universe.v1"
+}
