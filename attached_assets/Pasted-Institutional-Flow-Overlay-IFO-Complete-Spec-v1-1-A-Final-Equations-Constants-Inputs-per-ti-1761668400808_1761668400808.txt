@@ -1,0 +1,1231 @@
+Institutional Flow Overlay (IFO) – Complete Spec v1.1
+A) Final Equations & Constants
+
+Inputs (per ticker):
+
+Quarterly institutional holdings % change (q/q):
+
+𝐻
+𝑡
+=
+InstHold
+𝑡
+−
+InstHold
+𝑡
+−
+1
+InstHold
+𝑡
+−
+1
+H
+t
+	​
+
+=
+InstHold
+t−1
+	​
+
+InstHold
+t
+	​
+
+−InstHold
+t−1
+	​
+
+	​
+
+
+Standardize within ticker over last 12 quarters:
+
+𝑍
+𝐻
+=
+𝐻
+𝑡
+−
+𝜇
+(
+𝐻
+)
+𝜎
+(
+𝐻
+)
+Z
+H
+	​
+
+=
+σ(H)
+H
+t
+	​
+
+−μ(H)
+	​
+
+
+Relative volume z-score (daily):
+
+𝑅
+𝑉
+=
+𝑉
+𝑜
+𝑙
+‾
+5
+𝑑
+−
+𝑉
+𝑜
+𝑙
+‾
+100
+𝑑
+𝜎
+(
+𝑉
+𝑜
+𝑙
+100
+𝑑
+)
+RV=
+σ(Vol
+100d
+	​
+
+)
+Vol
+5d
+	​
+
+−
+Vol
+100d
+	​
+
+	​
+
+
+Accumulation/Distribution (A/D) normalized slope (daily):
+
+MFM
+𝑑
+=
+(
+𝐶
+−
+𝐿
+)
+−
+(
+𝐻
+−
+𝐶
+)
+max
+⁡
+(
+𝐻
+−
+𝐿
+,
+𝜖
+)
+MFM
+d
+	​
+
+=
+max(H−L,ϵ)
+(C−L)−(H−C)
+	​
+
+ with 
+𝜖
+=
+10
+−
+6
+ϵ=10
+−6
+
+
+MFV
+𝑑
+=
+MFM
+𝑑
+⋅
+𝑉
+𝑜
+𝑙
+𝑑
+MFV
+d
+	​
+
+=MFM
+d
+	​
+
+⋅Vol
+d
+	​
+
+
+
+𝐴
+𝐷
+𝑡
+=
+∑
+MFV
+𝑑
+AD
+t
+	​
+
+=∑MFV
+d
+	​
+
+ (cumulative)
+
+𝐴
+𝐷
+_
+𝑠
+𝑙
+𝑜
+𝑝
+𝑒
+=
+slope of 
+𝐴
+𝐷
+𝑡
+−
+𝐿
+.
+.
+𝑡
+ via OLS
+M
+A
+D
+(
+𝐴
+𝐷
+𝑡
+−
+120..
+𝑡
+)
+AD_slope=
+MAD(AD
+t−120..t
+	​
+
+)
+slope of AD
+t−L..t
+	​
+
+ via OLS
+	​
+
+, with 
+𝐿
+=
+20
+L=20.
+Clip 
+𝐴
+𝐷
+_
+𝑠
+𝑙
+𝑜
+𝑝
+𝑒
+∈
+[
+−
+2
+,
++
+2
+]
+AD_slope∈[−2,+2].
+
+Short-interest (optional; weekly or semi-monthly):
+
+𝐷
+𝑇
+𝐶
+𝑡
+=
+ShortInterest
+𝑡
+𝑉
+𝑜
+𝑙
+‾
+30
+𝑑
+DTC
+t
+	​
+
+=
+Vol
+30d
+	​
+
+ShortInterest
+t
+	​
+
+	​
+
+
+
+Δ
+𝐷
+𝑇
+𝐶
+=
+−
+(
+𝐷
+𝑇
+𝐶
+𝑡
+−
+𝐷
+𝑇
+𝐶
+𝑡
+−
+1
+)
+ΔDTC=−(DTC
+t
+	​
+
+−DTC
+t−1
+	​
+
+) (improvement bullish)
+Standardize over 52 weeks: 
+𝑍
+𝐷
+𝑇
+𝐶
+Z
+DTC
+	​
+
+.
+
+Raw Institutional Flow Score (weights sum to 1):
+Default weights: 
+𝑤
+1
+=
+0.45
+,
+  
+𝑤
+2
+=
+0.25
+,
+  
+𝑤
+3
+=
+0.20
+,
+  
+𝑤
+4
+=
+0.10
+w
+1
+	​
+
+=0.45,w
+2
+	​
+
+=0.25,w
+3
+	​
+
+=0.20,w
+4
+	​
+
+=0.10
+
+𝐼
+𝐹
+𝑆
+𝑡
+𝑟
+𝑎
+𝑤
+=
+𝑤
+1
+𝑍
+𝐻
++
+𝑤
+2
+𝑅
+𝑉
++
+𝑤
+3
+𝐴
+𝐷
+_
+𝑠
+𝑙
+𝑜
+𝑝
+𝑒
++
+𝑤
+4
+𝑍
+𝐷
+𝑇
+𝐶
+IFS
+t
+raw
+	​
+
+=w
+1
+	​
+
+Z
+H
+	​
+
++w
+2
+	​
+
+RV+w
+3
+	​
+
+AD_slope+w
+4
+	​
+
+Z
+DTC
+	​
+
+
+Clip: 
+𝐼
+𝐹
+𝑆
+𝑡
+𝑟
+𝑎
+𝑤
+∈
+[
+−
+3
+,
++
+3
+]
+IFS
+t
+raw
+	​
+
+∈[−3,+3].
+
+Smoothing: EMA with half-life 21 trading days (convert half-life to 
+𝛼
+α).
+
+𝐼
+𝐹
+𝑆
+𝑡
+=
+E
+M
+A
+𝐻
+𝐿
+=
+21
+(
+𝐼
+𝐹
+𝑆
+𝑡
+𝑟
+𝑎
+𝑤
+)
+IFS
+t
+	​
+
+=EMA
+HL=21
+	​
+
+(IFS
+t
+raw
+	​
+
+)
+
+Rescale to 
+[
+−
+2
+,
++
+2
+]
+[−2,+2]: winsorize IFS over a rolling 252 trading days at 5th/95th percentiles, then min-max map to 
+[
+−
+2
+,
++
+2
+]
+[−2,+2].
+
+Integration 1 — HMM Posterior Adjustment (complete):
+Let 
+𝑃
+𝑏
+𝑢
+𝑙
+𝑙
+P
+bull
+	​
+
+ be HMM posterior. Use a logit shift with strength 
+𝛾
+γ.
+
+logit
+(
+𝑝
+)
+=
+ln
+⁡
+𝑝
+1
+−
+𝑝
+logit(p)=ln
+1−p
+p
+	​
+
+, 
+𝜎
+(
+𝑥
+)
+=
+1
+1
++
+𝑒
+−
+𝑥
+σ(x)=
+1+e
+−x
+1
+	​
+
+
+Default 
+𝛾
+=
+0.6
+γ=0.6 (tune 0.3–0.9)
+
+𝑃
+~
+𝑏
+𝑢
+𝑙
+𝑙
+=
+𝜎
+ ⁣
+(
+logit
+(
+𝑃
+𝑏
+𝑢
+𝑙
+𝑙
+)
++
+𝛾
+⋅
+𝐼
+𝐹
+𝑆
+𝑡
+)
+P
+bull
+	​
+
+=σ(logit(P
+bull
+	​
+
+)+γ⋅IFS
+t
+	​
+
+)
+
+Integration 2 — Kelly Scaling (complete):
+Let 
+𝐾
+𝑏
+𝑎
+𝑠
+𝑒
+K
+base
+	​
+
+ be Kelly fraction from your edge/odds.
+
+𝛽
+=
+0.25
+β=0.25 (tune 0.1–0.4); 
+𝐾
+𝑚
+𝑎
+𝑥
+=
+0.25
+K
+max
+	​
+
+=0.25.
+
+𝐾
+𝑎
+𝑑
+𝑗
+=
+min
+⁡
+ ⁣
+(
+𝐾
+𝑚
+𝑎
+𝑥
+,
+  
+max
+⁡
+ ⁣
+(
+0
+,
+  
+𝐾
+𝑏
+𝑎
+𝑠
+𝑒
+⋅
+(
+1
++
+𝛽
+⋅
+𝐼
+𝐹
+𝑆
+𝑡
+)
+)
+)
+K
+adj
+	​
+
+=min(K
+max
+	​
+
+,max(0,K
+base
+	​
+
+⋅(1+β⋅IFS
+t
+	​
+
+)))
+B) Decision Bands (for “Decision” column)
+IFS
+𝑡
+t
+	​
+
+ band	Posterior & Kelly Guidance	Decision
+> +1.0	Strong inflow confirmation. Use 
+𝑃
+~
+𝑏
+𝑢
+𝑙
+𝑙
+P
+bull
+	​
+
+; 
+𝐾
+𝑎
+𝑑
+𝑗
+K
+adj
+	​
+
+ typically ↑ 15–30%.	Increase
+0 to +1.0	Mild confirmation. Maintain exposure; no change unless Kelly rules say otherwise.	Maintain
+-1.0 to 0	Mild outflow. Reduce 
+𝐾
+𝑎
+𝑑
+𝑗
+K
+adj
+	​
+
+ 10–20% vs base.	Reduce
+< -1.0	Strong outflow. Trim/exit unless 
+𝑃
+𝑏
+𝑢
+𝑙
+𝑙
+>
+0.80
+P
+bull
+	​
+
+>0.80 and risk rules allow.	Exit
+
+Tie-breakers:
+
+If 
+𝑃
+𝑏
+𝑢
+𝑙
+𝑙
+<
+0.40
+P
+bull
+	​
+
+<0.40, force Exit.
+
+If 
+𝑃
+𝑏
+𝑢
+𝑙
+𝑙
+>
+0.80
+P
+bull
+	​
+
+>0.80 and IFS in 
+[
+0
+,
++
+1
+]
+[0,+1], allow Increase.
+
+C) Output Contract (exact fields)
+
+Emit one record per ticker per day:
+
+ticker (string)
+
+date (YYYY-MM-DD)
+
+P_bull_raw (float, 0–1)
+
+IFS_raw (float, clipped)
+
+IFS_smoothed (float, rescaled −2..+2)
+
+P_bull_adj (float, 0–1; equals 
+𝑃
+~
+𝑏
+𝑢
+𝑙
+𝑙
+P
+bull
+	​
+
+)
+
+kelly_base (float, 0..1)
+
+kelly_adj (float, 0..1; equals 
+𝐾
+𝑎
+𝑑
+𝑗
+K
+adj
+	​
+
+)
+
+decision (enum: Increase | Maintain | Reduce | Exit)
+
+components_present (object with booleans: has_ZH, has_RV, has_ADslope, has_ZDTC)
+
+notes (string; e.g., “13F +1.7σ; RV z=1.1; AD_slope=0.8; DTC n/a”)
+
+version (string; “IFO v1.1”)
+
+D) Validation Rules (must pass)
+
+Weight Renormalization: If any input is missing, set its weight to 0 and renormalize remaining 
+𝑤
+𝑖
+w
+i
+	​
+
+ to sum to 1 for that record. Log missing components in components_present.
+
+Clipping/Winsorization: Apply the stated clip/winsorization (IFS_raw in 
+[
+−
+3
+,
++
+3
+]
+[−3,+3]; IFS_smoothed rescaled to 
+[
+−
+2
+,
++
+2
+]
+[−2,+2]).
+
+Posterior Monotonicity: If 
+𝐼
+𝐹
+𝑆
+𝑡
+IFS
+t
+	​
+
+ increases by ≥1.0 while 
+𝑃
+𝑏
+𝑢
+𝑙
+𝑙
+P
+bull
+	​
+
+ moves within ±0.05, then 
+𝑃
+𝑏
+𝑢
+𝑙
+𝑙
+_
+𝑎
+𝑑
+𝑗
+P
+bull_adj
+	​
+
+ must increase.
+
+Kelly Guardrails: Enforce 
+0
+≤
+𝐾
+𝑎
+𝑑
+𝑗
+≤
+𝐾
+𝑚
+𝑎
+𝑥
+0≤K
+adj
+	​
+
+≤K
+max
+	​
+
+.
+
+Reproducibility: Identical inputs produce identical outputs (no randomness).
+
+Staleness Flags: If 13F data older than 180 days, mark has_ZH=false and renormalize weights.
+
+Numerical Safety: When 
+𝐻
+=
+𝐿
+H=L in A/D math, use 
+𝜖
+=
+10
+−
+6
+ϵ=10
+−6
+.
+
+E) Backtest Protocol & A/B Switch
+
+Scope: Same tickers, same date range, same HMM; compare Without IFO vs With IFO overlays.
+
+Switch (boolean): use_IFO ∈ {true,false}.
+
+If false: use P_bull_raw and kelly_base.
+
+If true: use P_bull_adj and kelly_adj.
+
+Metrics to report (per run):
+
+Regime precision/recall for bullish calls (threshold 
+𝑃
+𝑏
+𝑢
+𝑙
+𝑙
+>
+0.6
+P
+bull
+	​
+
+>0.6)
+
+Portfolio CAGR, Sharpe (daily → annualized), Sortino
+
+Max drawdown
+
+Average Kelly utilization (mean 
+𝐾
+K), and variance of 
+𝐾
+K
+
+Hit rate on trades (win %) and average win/loss
+
+Pass Criteria (suggested):
+
+Bullish precision lift ≥ 5–10%
+
+Max DD not worse than baseline
+
+Sharpe same or higher
+
+Kelly variance lower or equal for similar return
+
+Outputs: CSV/JSON with both runs, plus a small summary table.
+
+F) Data-Source Choices (answering Replit)
+
+Institutional Holdings (13F)
+
+For now: Stub via manual CSV for tracked tickers (SOFI, AEIS, LC, ARRY, + your watchlist). Columns: ticker, quarter_end, inst_hold_pct or absolute shares; Replit computes 
+𝐻
+𝑡
+H
+t
+	​
+
+ and 
+𝑍
+𝐻
+Z
+H
+	​
+
+.
+
+Later (optional): SEC EDGAR XML scraping (free, slow). If implemented, cache per quarter; acceptable lag.
+
+Short Interest
+
+Optional. If unavailable, set 
+𝑤
+4
+=
+0
+w
+4
+	​
+
+=0 and renormalize. Accept FINRA semi-monthly (free) if desired.
+
+G) Integration Scope (answering Replit)
+
+Apply IFO in all three places:
+
+HMM Trading Signals tab: display P_bull_raw, IFS_smoothed, P_bull_adj, and decision.
+
+Kelly Position Sizing tab: use kelly_adj when use_IFO=true.
+
+Combined Analytics tab: show both raw vs adjusted side-by-side + Decision column.
+
+H) Architecture (no code, boundaries only)
+
+data/institutional_holdings.csv (stubbed 13F q/q)
+
+data/short_interest.csv (optional)
+
+ifo/calculations (module that computes IFS_raw, IFS_smoothed, P_bull_adj, kelly_adj)
+
+ifo/validation (module that enforces rules, logging)
+
+config/ifo.yaml (weights 
+𝑤
+𝑖
+w
+i
+	​
+
+, 
+𝛾
+γ, 
+𝛽
+β, 
+𝐾
+𝑚
+𝑎
+𝑥
+K
+max
+	​
+
+, bands, half-life, winsor percentiles)
+
+backtest/runner (toggles use_IFO, emits metrics)
+
+Caching: quarterly cache for 13F; daily cache for A/D and RV; recompute IFS once per day per ticker.
+
+I) Edge Cases & Fallbacks
+
+Illiquid days (H=L): MFM=0 (via 
+𝜖
+ϵ guard).
+
+Zero/near-zero volume: set RV=0 for that day.
+
+Recent IPO / sparse 13F: mark has_ZH=false, renormalize.
+
+Extreme outliers: after winsorization, any component > |5σ| set to sign*5 before weighting.
+
+J) Test Cases (math-only, for QA)
+
+Posterior boost: 
+𝑃
+𝑏
+𝑢
+𝑙
+𝑙
+=
+0.55
+P
+bull
+	​
+
+=0.55, 
+𝐼
+𝐹
+𝑆
+𝑡
+=
++
+1.2
+IFS
+t
+	​
+
+=+1.2, 
+𝛾
+=
+0.6
+γ=0.6.
+
+logit
+(
+0.55
+)
+=
+0.2007
+logit(0.55)=0.2007; add 
+0.72
+0.72 → 0.9207; 
+𝜎
+=
+0.715
+σ=0.715.
+Expect P_bull_adj≈0.715 (Decision likely Increase).
+
+Kelly down-weight: 
+𝐾
+𝑏
+𝑎
+𝑠
+𝑒
+=
+0.12
+K
+base
+	​
+
+=0.12, 
+𝐼
+𝐹
+𝑆
+𝑡
+=
+−
+1.0
+IFS
+t
+	​
+
+=−1.0, 
+𝛽
+=
+0.25
+β=0.25.
+
+𝐾
+𝑎
+𝑑
+𝑗
+=
+0.12
+∗
+(
+1
+−
+0.25
+)
+=
+0.09
+K
+adj
+	​
+
+=0.12∗(1−0.25)=0.09.
+
+Missing short interest: has_ZDTC=false → 
+𝑤
+4
+=
+0
+w
+4
+	​
+
+=0; renormalize other weights to sum 1; log in components_present.
+
+K) Logging & UI Notes
+
+Show a small tooltip on each ticker row:
+“IFS components: Z_H={x}, RV={y}, AD_slope={z}, Z_DTC={u}; weights={…}.”
+
+Add a badge: IFS Strong, IFS Weak, IFS Missing13F.
+
+Color-code Decision: Increase (green), Maintain (gray), Reduce (orange), Exit (red).
+
+Priorities for Replit (answering all queue questions)
+
+Do IFS now, separate overlay module (most leverage, minimal coupling).
+
+After it’s stable, add it as a layer in the Screener (filter by IFS band).
+
+Keep Regime-Alert Service unchanged, but include IFS in alert text if available.
+
+Short Answer Block (to paste back to Replit)
+
+Provide full doc above as “IFO Spec v1.1.”
+
+Data sources: Use manual CSV stub for 13F; short interest optional; renormalize weights when missing.
+
+Integration scope: HMM tab, Kelly tab, Combined Analytics—all three.
+
+A/B switch: use_IFO boolean; report Sharpe, max DD, bullish precision/recall, Kelly utilization.
+
+No code requested; formulas, schemas, and thresholds are explicit here.
+
+If you want, I can also draft the 1-page Help/Model Card text (plain English) for your app’s sidebar explaining what IFS is and how we use it.
