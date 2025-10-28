@@ -1,0 +1,138 @@
+Go-Ahead Decisions
+
+
+UI scope: Proceed with Option A (full UI integration) now.
+
+
+Add IFO columns to HMM, Kelly, Combined tabs.
+
+
+Create the “IFO Summary” tab listing all 12 fields.
+
+
+
+
+Screener: Do IFS overlay first, then add IFS as a filter/ranking layer in the Regime/Vol/Convexity Screener after this ships.
+
+
+Data sources (for production v1):
+
+
+13F = manual CSV updated quarterly (ticker,quarter_end,inst_hold_pct). Keep the staleness check (180d).
+
+
+Short interest = skip for now (set w4=0, renormalize).
+
+
+Daily signals = RV + AD_slope from current OHLCV.
+
+
+
+
+Backtest window: Default 6 months (configurable to 12/24 months).
+
+
+Insufficient history: If OHLCV < 120 trading days, skip ticker for IFO (no record that day).
+
+
+
+Small Tweaks/Notes
+
+
+A/D slope unit test: Returning 0 on perfectly linear synthetic data is fine. Keep the test but mark it informational; add a second test that uses a noisy series where AD_slope ≠ 0 to validate normalization/clipping behavior.
+
+
+CSV template (use this exact header):
+ticker,quarter_end,inst_hold_pct
+SOFI,2025-06-30,67.8
+AEIS,2025-06-30,93.1
+LC,2025-06-30,77.4
+ARRY,2025-06-30,84.2
+
+(We’ll expand as needed; staleness rule already covers delays.)
+
+
+
+UI Implementation Checklist
+HMM tab (add columns, left→right):
+P_bull_raw, IFS_smoothed, P_bull_adj, Decision (with color badges), tooltip showing component z’s + weights.
+Kelly tab:
+kelly_base, kelly_adj, IFS_smoothed, Decision.
+Combined tab:
+Side-by-side Raw vs Adjusted mini-panel:
+
+
+Raw: P_bull_raw, kelly_base
+
+
+Adjusted: P_bull_adj, kelly_adj, Decision
+
+
+Footnote: components present + notes.
+
+
+IFO Summary tab (all 12 fields):
+ticker, date, P_bull_raw, IFS_raw, IFS_smoothed, P_bull_adj, kelly_base, kelly_adj, decision, components_present, notes, version.
+Badges & colors:
+
+
+Increase = green, Maintain = gray, Reduce = orange, Exit = red.
+
+
+Extra badge if has_ZH=false: “No 13F”.
+
+
+Toggle:
+Global use_IFO switch (sticky). When off, dim IFO columns and show Raw metrics.
+
+A/B Backtest (deliverables)
+
+
+Toggle: use_IFO: true/false.
+
+
+Metrics to emit for both runs: Bullish precision/recall (thr 0.60), CAGR, Sharpe, Sortino, Max DD, mean/variance of Kelly, win-rate, avg win/loss.
+
+
+Default tickers (10) for the run: SOFI, AEIS, LC, ARRY, APPS, OPFI, EDIT, PLTR, AEHR, INMD.
+
+
+Acceptance bar: precision +5–10% vs baseline, Max DD not worse, Sharpe ≥ baseline.
+
+
+
+Config pins (keep as is)
+
+
+gamma=0.6, beta=0.25, K_max=0.25
+
+
+EMA half-life = 21d; winsor 5/95; rescale to [−2, +2]
+
+
+Phase 1A weights: RV=0.60, AD_slope=0.40 (renorm to 1)
+
+
+Decision bands: >+1.0 Increase, 0..+1 Maintain, −1..0 Reduce, <−1 Exit
+
+
+Tie-breakers: force Exit if P_bull_adj < 0.40; allow Increase if P_bull_adj > 0.80 and IFS ≥ 0.
+
+
+
+Ship Criteria (what I’ll look for)
+
+
+UI shows consistent adjusted vs raw metrics across tabs.
+
+
+A/B results generated and saved (CSV/JSON) with the metric block above.
+
+
+Validation tests: 6/7 pass + AD_slope informational note.
+
+
+CHANGELOG updated.
+
+
+Green light—go with Option A full UI integration, then we’ll fold IFS into the Screener once this is live.
