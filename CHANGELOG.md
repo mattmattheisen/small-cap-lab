@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2025-10-28
+
+### Added - Agent
+- **Universe Management System (Option A - Simple)**: CSV-based ticker universe with filtering and prioritization
+  - `config/universe_config.json`: Configuration with filters, ETF blocklist, max_tickers (350)
+  - `data/universe.csv`: Master ticker list (~180 tickers seeded from screener + alert service)
+  - `shared/universe_loader.py`: Core module for CSV reading, validation, filtering, sorting
+  - Small Cap Screener integration: Universe sidebar with Priority checkbox, Reload button, N/M counter
+  - Rationale: Centralized ticker management for consistent screening across app; preparation for Phase 2 OHLCV caching when Russell 2000 list added
+  - Status: Implemented, tested
+  - Components:
+    - CSV filtering: min_price ($2), min_volume (200k), market cap range ($200M-$5B), exchange whitelist, ADR/ETF exclusion
+    - Priority-based sorting: Fill max_tickers with A priority first, then B, then C
+    - Auto-relax logic: Falls back to top 50 by volume if all tickers filtered out
+    - Edge case handling: Creates default config if missing, shows warnings for missing CSV
+    - Paste CSV helper: Optional sidebar tool for appending new tickers to universe
+  - Schema: ticker, name, exchange, market_cap_musd, price, avg_vol_30d, sector, is_adr, is_etf, priority (A/B/C), source, notes
+  - Testing: E2E test passed with 179 tickers loaded, screening completed with 26 results
+  - Phase 2 (Deferred): OHLCV parquet caching with batch fetching and progress bars when full Russell 2000 list added
+
+### Changed - Agent
+- **SmallCapScreener Class**: Modified `__init__` to accept optional `universe` parameter
+  - Falls back to universe_loader if no universe provided
+  - Maintains backward compatibility with existing code
+  - Status: Implemented
+
+### Fixed - Agent
+- **Pandas .str Accessor Bug**: Fixed "Can only use .str accessor with string values" error
+  - Explicitly set dtype for string columns in CSV loading
+  - Added string conversion and NaN handling before .str operations
+  - Status: Resolved, tested
+
 ## [1.1.0] - 2025-10-24
 
 ### Added - Agent
